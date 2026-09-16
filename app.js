@@ -46,6 +46,49 @@ const TRACK_CN = ['物理', '历史'];
 const TRACK_EN = ['PHYSICS', 'HISTORY'];
 const PAGE = 30;
 const SPAGE = 30;
+
+/* ==========================================================================
+   列表分页策略 —— 选组 / 院校 / 专业三处共用
+     ≤ AUTO_ALL  → 一次性全量渲染（50 多条的筛选结果要能一眼看完）
+     > AUTO_ALL  → 每页 size 条，按钮明示还剩多少，另给「全部显示」（超过 ALL_CAP 不给）
+   --------------------------------------------------------------------------
+   这里有两个踩过的坑，都会让用户以为「数据漏了」：
+   ① 追加渲染后没有调 motion.reveal。
+      .swipe-wrap / .scard 的可见性靠 .in 类（CSS 里是 opacity:0），
+      于是「再看 N 个」插进去的第二页永远停在透明状态 —— 页面下方一大片空白，
+      底部却老老实实写着「已到末尾 · 共 52 所」。
+      用户报的是「985 里没有天津大学」，实际天津大学排第 41 位，被埋在了
+      那片看不见的第二页里。
+   ② 一律每页 30 条。985 有 52 所→2 页、211 有 132 所→5 页、保研资格 436 所→15 页。
+      白板上没人会点这么多次。所以小结果集直接给全量。
+   ========================================================================== */
+const AUTO_ALL = 60;    // 不超过这个数就一次性渲染
+const ALL_CAP = 600;    // 「全部显示」的上限，再多会拖垮页面
+function pagePlan(total, page, size, forceAll) {
+  const all = !!forceAll || total <= AUTO_ALL;
+  const shown = all ? total : Math.min(page * size, total);
+  return {
+    all,
+    shown,
+    from: all ? 0 : Math.max(0, shown - size),
+    rest: Math.max(0, total - shown),
+    canAll: !all && total <= ALL_CAP,
+  };
+}
+/* 追加渲染后必须揭示。老卡片已经有 .in，重复加没有副作用
+   （motion.reveal 内部就是这样设计的），但漏掉就一定出空白。 */
+function paintList(box, html, replace) {
+  if (replace) box.innerHTML = html; else box.insertAdjacentHTML('beforeend', html);
+  motion.reveal(box);
+}
+function moreBtn(attr, allAttr, rest, size, total) {
+  if (rest > 0) {
+    return `<button class="btn ghost" data-${attr}>再看 ${Math.min(rest, size)} 个（还有 ${nf(rest)} 个）</button>`
+      + (allAttr ? ` <button class="btn ghost sm" data-${allAttr}>全部显示（共 ${nf(total)} 个）</button>` : '');
+  }
+  return total > size
+    ? `<span style="font-size:12px;color:var(--faint)">已到末尾 · 共 ${nf(total)} 个</span>` : '';
+}
 const INF = 999999;
 
 /* 冲稳保带状区间：R = 组线位次 / 你的位次 */
@@ -892,7 +935,7 @@ function yearCell(score, rank) {
 let lastList = [];
 function renderGroups(reset) {
   const gl = $('#glist');
-  if (reset) state.groupPage = 1;
+  if (reset) { state.groupPage = 1; state.gShowAll = false; }
   const total = lastList.length;
   if (!total) {
     gl.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.6 15.6 4.4 4.4"/></svg>
@@ -926,16 +969,15 @@ function renderGroups(reset) {
   }
 
   /* 平铺视图 */
-  const shown = state.groupPage * PAGE;
-  const slice = lastList.slice(reset ? 0 : shown - PAGE, shown);
+  const plan = pagePlan(total, state.groupPage, PAGE, state.gShowAll);
+  const slice = lastList.slice(plan.from, plan.shown);
   const html = slice.map((i, k) => groupCard(i, k)).join('');
-  if (reset) { gl.innerHTML = html; motion.reveal(gl); }
-  else gl.insertAdjacentHTML('beforeend', html);
+  /* 追加时也必须揭示 —— 原来这里只在 reset 时调 motion.reveal，
+     结果「再看 N 个」插进来的卡片全部停在 opacity:0，整片空白。 */
+  paintList(gl, html, reset || plan.all);
 
-  const rest = total - shown;
-  $('#gmore').innerHTML = rest > 0
-    ? `<button class="btn ghost" data-more-groups>再看 ${Math.min(rest, PAGE)} 个（还有 ${nf(rest)} 个）</button>`
-    : (total > PAGE ? `<span style="font-size:12px;color:var(--faint)">已到末尾 · 共 ${nf(total)} 个组</span>` : '');
+  $('#gmore').innerHTML = moreBtn('more-groups', plan.canAll ? 'all-groups' : '',
+    plan.rest, PAGE, total);
 }
 
 /* 展开某一档全部 */
@@ -1146,21 +1188,30 @@ const KIND_DESC = {
   '名单': '入选名单，代表学校整体层次',
   '项目': '参与了某项建设或培养计划，反映办学特色',
   '隶属': '说明学校归谁管、资源从哪来',
-  '资格': '具备某项资格，不等于实际水平'
+  '资格': '具备某项资格，不等于实际水平',
+  '行业': '历史上的部委隶属关系，反映行业背景',
+  '合称': '民间约定俗成的叫法，不是官方名单',
+  '其他': '本站尚未逐一撰写释义'
 };
 function tagInfo(tag) { return (D.meta.tags || {})[tag] || null; }
 
 function openTagLegend(focusTag) {
   const tags = D.meta.tags || {};
-  const order = ['名单', '资格', '项目', '隶属'];
+  /* 分类顺序。注意这里必须列出所有可能出现的 kind ——
+     原来是写死的白名单 + order.filter()，新分类一旦不在数组里就会被整组丢掉：
+     加了「行业」「合称」两类标签后，如果不补这里，40 多个原部委标签
+     会在释义里凭空消失（数据有、界面没有，比缺数据更难发现）。 */
+  const order = ['名单', '资格', '项目', '隶属', '行业', '合称', '其他'];
   const groups = {};
   Object.keys(tags).forEach(t => {
     const k = tags[t].kind || '其他';
     (groups[k] = groups[k] || []).push(t);
   });
+  /* 兜底：万一数据里出现了 order 没列到的 kind，也要显示出来 */
+  Object.keys(groups).forEach(k => { if (order.indexOf(k) < 0) order.push(k); });
   const body = order.filter(k => groups[k]).map(k => `
     <div class="lg-grp">
-      <div class="lg-kind"><b>${esc(k)}</b><span>${esc(KIND_DESC[k] || '')}</span></div>
+      <div class="lg-kind"><b>${esc(k)}</b><span>${esc(KIND_DESC[k] || '')} · ${groups[k].length} 个</span></div>
       ${groups[k].map(t => {
         const v = tags[t];
         return `<div class="lg-item${focusTag === t ? ' hi' : ''}" data-lg="${esc(t)}">
@@ -2013,8 +2064,12 @@ function runSchools() {
   }
   return out;
 }
+/* 有筛选（标签 / 搜索）时给全量，否则按 pagePlan 分页。
+   原来一律每页 30 条：点 985 只看得到 30 所，默认排序又是「可填组数」降序，
+   天津大学只有 5 个组、排第 41 位 —— 首屏没有，第二页又因为缺 motion.reveal
+   而不可见，学生会直接认定「985 名单漏了天津大学」。 */
 function renderSchools(reset) {
-  if (reset) { lastSchools = runSchools(); state.sPage = 1; }
+  if (reset) { lastSchools = runSchools(); state.sPage = 1; state.sShowAll = false; }
   const g = $('#sgrid');
   $('#s-cnt').textContent = nf(lastSchools.length);
   $('#s-meta').textContent = `${nf(D.schools.length)} 所院校中，${nf(lastSchools.length)} 所有 ${TRACK_CN[state.track]}类招生`;
@@ -2023,8 +2078,8 @@ function renderSchools(reset) {
     g.innerHTML = `<div class="empty" style="grid-column:1/-1"><h3>没有找到院校</h3><p>换个关键词试试</p></div>`;
     $('#smore').innerHTML = ''; return;
   }
-  const shown = state.sPage * SPAGE;
-  const slice = lastSchools.slice(reset ? 0 : shown - SPAGE, shown);
+  const plan = pagePlan(lastSchools.length, state.sPage, SPAGE, state.sShowAll);
+  const slice = lastSchools.slice(plan.from, plan.shown);
   const html = slice.map((si, k) => {
     const s = D.schools[si], gs = D.schoolGroups.get(si);
     const plan = gs.reduce((a, i) => a + (D.groups[i][G_.PLAN] || 0), 0);
@@ -2059,11 +2114,9 @@ function renderSchools(reset) {
       </div>
     </button>`;
   }).join('');
-  if (reset) { g.innerHTML = html; motion.reveal(g); } else g.insertAdjacentHTML('beforeend', html);
-  const rest = lastSchools.length - shown;
-  $('#smore').innerHTML = rest > 0
-    ? `<button class="btn ghost" data-more-schools>再看 ${Math.min(rest, SPAGE)} 所（还有 ${nf(rest)} 所）</button>`
-    : (lastSchools.length > SPAGE ? `<span style="font-size:12px;color:var(--faint)">已到末尾 · 共 ${nf(lastSchools.length)} 所</span>` : '');
+  paintList(g, html, reset || plan.all);
+  $('#smore').innerHTML = moreBtn('more-schools', plan.canAll ? 'all-schools' : '',
+    plan.rest, SPAGE, lastSchools.length);
 }
 
 /* ==========================================================================
@@ -2220,7 +2273,7 @@ function runMajorQuery() {
 
 function renderMajorRows(reset) {
   const box = $('#maj-list');
-  if (reset) box.innerHTML = '';
+  if (reset) { box.innerHTML = ''; MP.page = 1; MP.showAllRows = false; }
   const total = MP.list.length;
   if (!total) {
     box.innerHTML = `<div class="empty"><h3>没有符合条件的学校</h3>
@@ -2228,8 +2281,8 @@ function renderMajorRows(reset) {
     $('#maj-more').innerHTML = '';
     return;
   }
-  const shown = MP.page * MP_PAGE;
-  const slice = MP.list.slice(reset ? 0 : shown - MP_PAGE, shown);
+  const plan = pagePlan(total, MP.page, MP_PAGE, MP.showAllRows);
+  const slice = MP.list.slice(plan.from, plan.shown);
   box.insertAdjacentHTML('beforeend', slice.map(oi => {
     const o = D.offerings[oi], g = D.groups[o[O_.GROUP]], s = D.gSchool[o[O_.GROUP]];
     const t = g[G_.R25] > 0 ? TIER[tierOf(state.rank, g[G_.R25])] : null;
@@ -2269,10 +2322,8 @@ function renderMajorRows(reset) {
     </div>`;
   }).join(''));
   motion.reveal(box, '.mjrow');
-  const rest = total - shown;
-  $('#maj-more').innerHTML = rest > 0
-    ? `<button class="btn ghost" data-more-major>再看 ${Math.min(rest, MP_PAGE)} 所（还有 ${nf(rest)} 所）</button>`
-    : (total > MP_PAGE ? `<span style="font-size:12px;color:var(--faint)">已到末尾 · 共 ${nf(total)} 条</span>` : '');
+  $('#maj-more').innerHTML = moreBtn('more-major', plan.canAll ? 'all-major' : '',
+    plan.rest, MP_PAGE, total);
 }
 
 /* ==========================================================================
@@ -2461,7 +2512,9 @@ function bind() {
     const mt = el.closest('[data-more-tier]');
     if (mt) { expandTier(mt.dataset.moreTier); return; }
     if (el.closest('[data-more-groups]')) { state.groupPage++; renderGroups(false); return; }
+    if (el.closest('[data-all-groups]')) { state.gShowAll = true; renderGroups(false); return; }
     if (el.closest('[data-more-schools]')) { state.sPage++; renderSchools(false); return; }
+    if (el.closest('[data-all-schools]')) { state.sShowAll = true; renderSchools(false); return; }
 
     /* 院校标签 */
     const st = el.closest('[data-stag]');
@@ -2512,6 +2565,7 @@ function bind() {
     if (el.closest('#m-back')) { backToPicker(); return; }
     if (el.closest('#mp-more')) { MP.showAll = true; renderMajorPicker(); return; }
     if (el.closest('[data-more-major]')) { MP.page++; renderMajorRows(false); return; }
+    if (el.closest('[data-all-major]')) { MP.showAllRows = true; renderMajorRows(false); return; }
     const mjrow = el.closest('[data-mjg]');
     if (mjrow && !el.closest('[data-add]')) { openGroup(+mjrow.dataset.mjg); return; }
 
