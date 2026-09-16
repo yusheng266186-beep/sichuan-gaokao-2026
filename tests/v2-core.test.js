@@ -40,3 +40,9 @@ test('major lookup and history track query both return linked, real offerings',(
  const major=data.dicts.major.indexOf('汉语言文学');const ids=C.query(data,{...base,major},{...profile,track:1});assert.ok(ids.length);
  ids.forEach(i=>{assert.equal(data.groups[i][1],1);assert.ok(data.links[i].some(l=>l[0]===major));});
 });
+test('histogram selection uses inclusive lower and exclusive upper score bounds',()=>{
+ const ids=C.query(data,{...base,scoreFrom:'540',scoreTo:'550'},profile);
+ assert.ok(ids.length);ids.forEach(i=>assert.ok(data.groups[i][9]>=540&&data.groups[i][9]<550));
+ const all=C.query(data,base,profile);
+ assert.deepEqual(new Set(ids),new Set(all.filter(i=>data.groups[i][9]>=540&&data.groups[i][9]<550)));
+});
