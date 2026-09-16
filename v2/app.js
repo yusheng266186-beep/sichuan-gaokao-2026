@@ -242,10 +242,11 @@
     state.stage=p.has('stage')?p.get('stage')==='1':storage.read('luodian.v2.stage',false)===true;if(p.get('noanim')==='1')document.body.classList.add('noanim');
   }
   async function init(){
+    const direct=new URLSearchParams(location.search);
     try{
       const response=await fetch('./catalog.json',{cache:'no-cache'});if(!response.ok)throw Error('检索目录未能加载（'+response.status+'）');
       D=C.prepare(await response.json());restore();setupControls();bind();refresh();syncSavedButtons();$$('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===state.view)));if(state.stage)setStage(true);if(state.route==='saved')navigate('saved');
-      const direct=new URLSearchParams(location.search);if(direct.has('group')){const key=direct.get('group'),i=D.byKey.get(key)??(/^\d+$/.test(key)?Number(key):undefined);if(i!==undefined&&D.groups[i])openGroup(i);}
+      if(direct.has('group')){const key=direct.get('group'),i=D.byKey.get(key)??(/^\d+$/.test(key)?Number(key):undefined);if(i!==undefined&&D.groups[i])openGroup(i);}
       console.info('[LUODIAN_V2_READY]',D.groups.length,D.schools.length);
     }catch(e){console.error(e);$('#results').setAttribute('aria-busy','false');$('#results').innerHTML=`<div class="empty-state"><h3>数据正在路上。</h3><p>${esc(e.message)}。请检查网络后刷新；也可以先打开第一代。</p><a class="button primary" href="./">重新加载 ↗</a> <a class="button" href="../">打开第一代</a></div>`;$('#results-count').textContent='暂时无法加载';$('#position-note').textContent='数据尚未就绪';$('#land-nodes').innerHTML='';$('#data-count').textContent='数据加载未完成';}
   }

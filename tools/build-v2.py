@@ -31,5 +31,13 @@ catalog = {
 }
 out = ROOT/'v2'/'catalog.json'
 out.parent.mkdir(exist_ok=True)
-out.write_text(json.dumps(catalog, ensure_ascii=False, separators=(',', ':')))
+def compact_numbers(value):
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, list):
+        return [compact_numbers(v) for v in value]
+    if isinstance(value, dict):
+        return {k: compact_numbers(v) for k, v in value.items()}
+    return value
+out.write_text(json.dumps(compact_numbers(catalog), ensure_ascii=False, separators=(',', ':')))
 print(f'{out.relative_to(ROOT)}: {out.stat().st_size:,} bytes; {len(groups):,} groups; {len(offerings):,} offerings')

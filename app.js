@@ -757,7 +757,7 @@ function renderFilters() {
     </div>
     <div class="subrow"><div class="lbl">数据完整度</div><div class="chips">
       <button class="chip mini accent" data-sw="onlyLine" aria-pressed="${!!state.onlyLine}"><span>只看有往年组线</span></button>
-      <button class="chip mini accent" data-sw="onlyNewGroup" aria-pressed="${!!state.onlyNewGroup}"><span>只看今年新组</span></button>
+      <button class="chip mini accent" data-sw="onlyNewGroup" aria-pressed="${!!state.onlyNewGroup}"><span>只看暂无往年线</span></button>
       <button class="chip mini accent" data-sw="onlyNewMajor" aria-pressed="${!!state.onlyNewMajor}"><span>组内含新增专业</span></button>
       <button class="chip mini accent" data-sw="onlyMatchSubject" aria-pressed="${!!state.onlyMatchSubject}"
         ${state.mySubjects.length < 2 ? 'disabled style="opacity:.45;cursor:not-allowed"' : ''}>
@@ -781,7 +781,7 @@ function renderSelbar() {
   if (state.fee) items.push(selTag('学费 ' + (state.fee[1] >= INF ? '不限' : state.fee[0] + '–' + state.fee[1]), 'fee|'));
   if (state.plan) items.push(selTag('计划 ≥' + state.plan[0], 'plan|'));
   if (state.onlyLine) items.push(selTag('有往年组线', 'onlyLine|'));
-  if (state.onlyNewGroup) items.push(selTag('今年新组', 'onlyNewGroup|'));
+  if (state.onlyNewGroup) items.push(selTag('暂无往年线', 'onlyNewGroup|'));
   if (state.onlyNewMajor) items.push(selTag('含新增专业', 'onlyNewMajor|'));
   if (state.onlyMatchSubject && state.mySubjects.length === 2)
     items.push(selTag('符合我的选科', 'onlyMatchSubject|'));
@@ -877,7 +877,7 @@ function scoreCell(score, rank, emptyLabel) {
     return `<div class="cardnum"><div class="v"><span class="n">${nf(rank)}</span><span class="u">位次</span></div>
       <div class="sub">2025 年</div></div>`;
   }
-  return `<div class="cardnum none"><div class="v"><span class="n">${emptyLabel || '今年新组'}</span></div>
+  return `<div class="cardnum none"><div class="v"><span class="n">${emptyLabel || '暂无往年线'}</span></div>
     <div class="sub">无往年参考</div></div>`;
 }
 function yearCell(score, rank) {
@@ -1047,7 +1047,7 @@ function updateTiers() {
     $('#b-' + k).style.transform = `scaleX(${cnt[k] / max})`;
   });
   $('#tier-note').innerHTML =
-    `${TRACK_CN[state.track]}类共 <b>${nf(tot)}</b> 个可填组 · 另有 ${nf(cnt.risk)} 个"险"、${nf(cnt.far)} 个"远"、${nf(cnt.none)} 个今年新组`;
+    `${TRACK_CN[state.track]}类共 <b>${nf(tot)}</b> 个可填组 · 另有 ${nf(cnt.risk)} 个"险"、${nf(cnt.far)} 个"远"、${nf(cnt.none)} 个暂无往年线的组`;
   D.tierCount = cnt;
 }
 
@@ -1865,7 +1865,7 @@ function planDiagnosis(b, used, SLOTS) {
   if (c === 0 && used >= 6) notes.push(['warn', '没有「冲」的志愿，可能会浪费分数。可以考虑加 5–8 个组线比你高 5%–20% 的组。']);
   else if (c > w + s + 4) notes.push(['warn', `冲的偏多（${c} 个）。冲档命中率低，建议冲 : 稳 : 保 大致控制在 2 : 4 : 4。`]);
   if (s < 3 && used >= 8) notes.push(['warn', `「保」只有 ${s} 个，兜底不足。建议至少 8–12 个保底组，且覆盖不同省份或院校。`]);
-  if (b.none.length) notes.push(['info', `有 ${b.none.length} 个今年新组，没有往年组线，位次无法预估，建议留足保底。`]);
+  if (b.none.length) notes.push(['info', `有 ${b.none.length} 个暂无往年线的组，没有往年组线，位次无法预估，建议留足保底。`]);
   if (b.risk.length) notes.push(['warn', `有 ${b.risk.length} 个组的往年线高出你 30% 以上，录取希望较小。`]);
   if (b.far.length) notes.push(['info', `有 ${b.far.length} 个组的往年线远低于你，可能浪费志愿位。`]);
 
