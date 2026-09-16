@@ -78,6 +78,8 @@
       if(f.tag && !(s.tag||[]).includes(f.tag)) return;
       if(f.fee && !(g[G.feeMax]>0 && g[G.feeMax]<=Number(f.fee))) return;
       if(f.line && !(g[G.r25]>0)) return;
+      if(f.scoreFrom!==undefined&&f.scoreFrom!==''&&(!(g[G.s25]>0)||g[G.s25]<Number(f.scoreFrom))) return;
+      if(f.scoreTo!==undefined&&f.scoreTo!==''&&(!(g[G.s25]>0)||g[G.s25]>=Number(f.scoreTo))) return;
       if(f.subjectOnly && subjectStatus(g[G.req],p.subjects)!=='ok') return;
       if(q.some(word=>!data.search[i].includes(word))) return;
       // The major/category intersection must match one offering, not different majors in one group.
