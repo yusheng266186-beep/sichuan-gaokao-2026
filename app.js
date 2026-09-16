@@ -56,7 +56,7 @@ const TIER = {
   bao:   { n: '保', c: 'var(--bao)',   d: '组线比你低约 18%–67%' },
   risk:  { n: '险', c: 'var(--risk)',  d: '组线高出你 30% 以上' },
   far:   { n: '远', c: 'var(--risk)',  d: '组线远低于你' },
-  none:  { n: '新', c: 'var(--faint)', d: '无往年组线' }
+  none:  { n: '待', c: 'var(--faint)', d: '无往年组线' }
 };
 function tierOf(you, line) {
   if (!you || !line || line <= 0) return 'none';
@@ -75,7 +75,7 @@ const TIER_ACT = {
   bao: '录取把握大，用来兜底，放在志愿表靠后的位置。',
   risk: '差距偏大，除非特别想上，否则不建议占用一个志愿位。',
   far: '对你来说过于保守，填它等于浪费一个志愿位。',
-  none: '今年新组没有往年线，只能参考同校其他组和招生计划判断。'
+  none: '暂无往年线，需进一步核实同校其他组、专业与招生计划。'
 };
 
 /* ---------- 选科匹配 ----------
@@ -537,7 +537,7 @@ const state = {
   page: 'groups', track: 0, mode: 'score', score: 600, rank: null, rankHi: null, rankLo: null,
   view: 'all', tierFilter: null, sort: 'close', q: '',
   filters: {}, showAllChips: {},
-  sTag: null, sSort: 'groups', sPage: 1, page: 1,
+  sTag: null, sSort: 'groups', sPage: 1, groupPage: 1,
   basket: [],
   /* 再选科目（2 门）；只匹配选科 = 过滤掉不符合的组 */
   mySubjects: [],
@@ -892,7 +892,7 @@ function yearCell(score, rank) {
 let lastList = [];
 function renderGroups(reset) {
   const gl = $('#glist');
-  if (reset) state.page = 1;
+  if (reset) state.groupPage = 1;
   const total = lastList.length;
   if (!total) {
     gl.innerHTML = `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.6 15.6 4.4 4.4"/></svg>
@@ -926,7 +926,7 @@ function renderGroups(reset) {
   }
 
   /* 平铺视图 */
-  const shown = state.page * PAGE;
+  const shown = state.groupPage * PAGE;
   const slice = lastList.slice(reset ? 0 : shown - PAGE, shown);
   const html = slice.map((i, k) => groupCard(i, k)).join('');
   if (reset) { gl.innerHTML = html; motion.reveal(gl); }
@@ -955,7 +955,7 @@ function applyQuery(reset = true) {
   if (firstPaint) { cnt.dataset.v = lastList.length; cnt.textContent = nf(lastList.length); }
   else { motion.count(cnt, lastList.length); motion.bump(cnt); }
   const withLine = lastList.reduce((a, i) => a + (D.groups[i][G_.R25] > 0 ? 1 : 0), 0);
-  $('#res-meta').textContent = `${nf(withLine)} 个有 2025 组线，${nf(lastList.length - withLine)} 个为今年新组`;
+  $('#res-meta').textContent = `${nf(withLine)} 个有 2025 组线，${nf(lastList.length - withLine)} 个暂无 2025 组线`;
   renderGroups(reset);
   renderSelbar();
   $('#rail-groups').textContent = lastList.length > 9999 ? (lastList.length / 1000).toFixed(1) + 'k' : lastList.length;
@@ -1359,7 +1359,7 @@ function openGroup(i) {
     /* 有你的位次，但这个组没有 2025 组线（今年新组）—— 原来这里什么都不渲染，
        整个「你的位置」板块静默消失，看起来像坏了。 */
     scale = `<div class="dsec"><h3>你的位置</h3>
-      <div class="explain" style="margin-top:0">这是<b>今年新设的专业组</b>，没有 2025 年的调档线，
+      <div class="explain" style="margin-top:0">这个组<b>暂无有效的 2025 年调档线记录</b>，
       算不出你与它的差距。可以看同校其他组的线，或参考组内专业的往年位次。</div></div>`;
   }
 
@@ -1448,7 +1448,7 @@ function openGroup(i) {
       <div class="lines3">
         <div class="ln-card main">
           <div class="ln-head"><span class="ln-k">本专业组调档线</span>
-            <span class="ln-tag">${g[G_.SRC] === 0 ? '官方值' : g[G_.SRC] === 1 ? '推导值' : '今年新组'}</span></div>
+            <span class="ln-tag">${g[G_.SRC] === 0 ? '官方值' : g[G_.SRC] === 1 ? '推导值' : '暂无往年线'}</span></div>
           <div class="ln-v num">${g[G_.S25] > 0 ? g[G_.S25] + '<span class="u">分</span>' : (line > 0 ? nf(line) : '—')}</div>
           <div class="ln-s">${line > 0 ? '位次 ' + nf(line) + ' · 2025 年' : '无往年数据'}</div>
         </div>
@@ -1596,7 +1596,7 @@ function openMajor(oi) {
         </div>
         <div class="ln-card">
           <div class="ln-head"><span class="ln-k">所属专业组调档线</span>
-            <span class="ln-tag">${g[G_.SRC] === 0 ? '官方值' : '今年新组'}</span></div>
+            <span class="ln-tag">${g[G_.SRC] === 0 ? '官方值' : '暂无往年线'}</span></div>
           <div class="ln-v num">${g[G_.S25] > 0 ? g[G_.S25] + '<span class="u">分</span>' : (g[G_.R25] > 0 ? nf(g[G_.R25]) : '—')}</div>
           <div class="ln-s">${g[G_.R25] > 0 ? '位次 ' + nf(g[G_.R25]) + ' · 2025 年' : '无往年数据'}</div>
         </div>
@@ -2460,7 +2460,7 @@ function bind() {
     /* 展开某一档 */
     const mt = el.closest('[data-more-tier]');
     if (mt) { expandTier(mt.dataset.moreTier); return; }
-    if (el.closest('[data-more-groups]')) { state.page++; renderGroups(false); return; }
+    if (el.closest('[data-more-groups]')) { state.groupPage++; renderGroups(false); return; }
     if (el.closest('[data-more-schools]')) { state.sPage++; renderSchools(false); return; }
 
     /* 院校标签 */
@@ -2638,8 +2638,8 @@ function bind() {
   if ('IntersectionObserver' in window) {
     const io = new IntersectionObserver(en => {
       if (!en[0].isIntersecting) return;
-      if (state.page === 'groups' && state.view !== 'tier' && lastList.length > state.page * PAGE) {
-        state.page++; renderGroups(false);
+      if (state.page === 'groups' && state.view !== 'tier' && lastList.length > state.groupPage * PAGE) {
+        state.groupPage++; renderGroups(false);
       } else if (state.page === 'schools' && lastSchools.length > state.sPage * SPAGE) {
         state.sPage++; renderSchools(false);
       }
