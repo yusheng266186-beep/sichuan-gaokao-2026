@@ -1,0 +1,16 @@
+{
+  "name": "落点 · 四川 2026 高考志愿",
+  "short_name": "落点",
+  "description": "以院校专业组为单位，按冲稳保分档查询四川 2026 高考志愿。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#eef0f4",
+  "theme_color": "#16233c",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}
