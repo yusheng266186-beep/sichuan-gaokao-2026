@@ -1,0 +1,2 @@
+# data/ 下都是构建产物（export.py 从合并库导出），不要在 GitHub 上手工改
+data/*.js linguist-generated=true -diff
