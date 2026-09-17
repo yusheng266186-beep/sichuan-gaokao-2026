@@ -158,8 +158,65 @@ function copyAboutQQ(btn) {
     $('#saved-results').innerHTML=state.saved.map((key,n)=>{const i=D.byKey.get(key);if(i===undefined)return '';const g=D.groups[i],s=D.schools[g[0]];return `<article class="saved-row"><span class="saved-number">${String(n+1).padStart(2,'0')}</span><div class="saved-info"><h3><button class="school-name" data-group="${i}">${esc(s.n)} · ${esc(groupLabel(g))}</button></h3><p>${trackName(g[1])} · ${esc(g[G.batch])} · ${esc(g[G.req]||'选科待补充')} · 2025 组线 ${valid(g[G.s25])} 分</p><button class="text-button" data-group="${i}">${esc(majorNames(i,3))} ↗</button></div><div class="saved-actions"><button data-move="${n}" data-dir="-1" aria-label="上移第${n+1}项" ${n===0?'disabled':''}>↑</button><button data-move="${n}" data-dir="1" aria-label="下移第${n+1}项" ${n===state.saved.length-1?'disabled':''}>↓</button><button data-compare="${i}" aria-label="对比${esc(s.n)}${esc(groupLabel(g))}" aria-pressed="${state.compare.includes(i)}">⊞</button><button data-save="${i}" aria-label="移除${esc(s.n)}${esc(groupLabel(g))}" aria-pressed="true">×</button></div></article>`;}).join('');
   }
   function exportSaved(){if(!state.saved.length){toast('请先收藏需要的专业组。');return;}const lines=['落点 · 我的备选',new Date().toLocaleDateString('zh-CN'),`定位：${trackName(state.profile.track)} ${state.profile.value}${state.profile.mode==='rank'?'名':'分'}${state.profile.demo?'（示例）':''}`,`再选科目：${state.profile.subjects.join('、')||'未设置'}`,'这是探索清单，正式填报请按科类、批次分别核对当年规则。',''];state.saved.forEach((key,n)=>{const i=D.byKey.get(key),g=D.groups[i],s=D.schools[g[0]];lines.push(`${n+1}. ${s.n}（院校代码 ${s.code}）· ${groupLabel(g)}`,`   ${trackName(g[1])} / ${g[G.batch]} / ${g[G.type]} / 选科：${g[G.req]||'未提供'}`,`   2025 组线 ${valid(g[G.s25])} 分 / 位次 ${valid(g[G.r25])} / 2026 计划 ${valid(g[G.plan])} 人`,`   ${majorNames(i,100)}`,`   招生考试报学费：${fee(g)}`,`   招生章程：${safeURL(s.charter)||'未提供'}`,'');});lines.push('数据生成时间：'+D.generated,'官方填报请以当年招生计划、招生章程和四川省教育考试院公布信息为准。');const url=URL.createObjectURL(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='落点_我的备选.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('备选清单已导出');}
-  function openDialog(id){previousFocus=document.activeElement;$$('dialog[open]').forEach(d=>d.close());const el=$('#'+id);el.showModal();el.scrollTop=0;el.querySelector('[data-close]')?.focus({preventScroll:true});}
-  function closeDialog(el){detailToken++;el.close();previousFocus?.focus?.({preventScroll:true});}
+  /* 弹窗开关 —— 手机上的退出是这里的重点
+     ----------------------------------------------------------------------
+     原来只有「关闭按钮 / 点遮罩 / Esc」三条路。详情弹窗在手机上 max-width:100%
+     就是满屏，遮罩被完全盖住，点外面关不掉；Esc 手机上没有。
+     于是只剩右上角一个按钮，学生点进院校/专业详情后常常找不到怎么退出来。
+     补两条手机原生的退出方式：① 返回键/返回手势 ② 向右滑动。
+     关闭原来是一瞬间消失，现在补上退场淡出。 */
+  let dialogPushed=false;
+  function openDialog(id){
+    previousFocus=document.activeElement;
+    $$('dialog[open]').forEach(d=>d.close());
+    const el=$('#'+id);
+    el.showModal();el.scrollTop=0;
+    el.querySelector('[data-close]')?.focus({preventScroll:true});
+    if(!dialogPushed){dialogPushed=true;try{history.pushState({ldDialog:id},'',location.href);}catch(e){dialogPushed=false;}}
+    bindDialogSwipe(el);
+  }
+  /* skipHistory：popstate 触发的关闭不能再调 history.back()，否则把用户弹出站点 */
+  function closeDialog(el,skipHistory){
+    detailToken++;
+    if(!el||el.classList.contains('closing'))return;
+    const done=()=>{
+      el.classList.remove('closing');
+      el.close();
+      previousFocus?.focus?.({preventScroll:true});
+      if(dialogPushed){dialogPushed=false;if(!skipHistory){try{history.back();}catch(e){}}}
+    };
+    /* reduced-motion 下不等动画；另兜一个定时器 —— 万一 animationend 没触发
+       （动画被禁用、元素被隐藏），弹窗不能卡在 closing 状态关不掉。 */
+    if(matchMedia('(prefers-reduced-motion:reduce)').matches){done();return;}
+    el.classList.add('closing');
+    let fired=false;
+    const once=()=>{if(fired)return;fired=true;done();};
+    el.addEventListener('animationend',once,{once:true});
+    setTimeout(once,300);
+  }
+  window.addEventListener('popstate',()=>{
+    if(!dialogPushed)return;
+    dialogPushed=false;
+    const open=document.querySelector('dialog[open]');
+    if(open)closeDialog(open,true);
+  });
+  /* 向右滑动关闭。纵向为主就放弃，交给页面滚动。 */
+  function bindDialogSwipe(el){
+    if(!el||el.dataset.swipeBound)return;
+    el.dataset.swipeBound='1';
+    let x0=0,y0=0,live=false;
+    el.addEventListener('touchstart',ev=>{
+      if(ev.touches.length!==1)return;
+      x0=ev.touches[0].clientX;y0=ev.touches[0].clientY;live=true;
+    },{passive:true});
+    el.addEventListener('touchmove',ev=>{
+      if(!live)return;
+      const dx=ev.touches[0].clientX-x0,dy=ev.touches[0].clientY-y0;
+      if(Math.abs(dy)>Math.abs(dx)){live=false;return;}
+      if(dx>74){live=false;closeDialog(el);}
+    },{passive:true});
+    el.addEventListener('touchend',()=>{live=false;},{passive:true});
+  }
   function openFilters(){
     const f=state.filters,arr=(key)=>[...new Set(D.schools.map(s=>s[key]).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh-CN'));
     const fields=[['province','想去的省份',arr('prov'),'全国'],['region','地理大区',arr('reg'),'全部大区'],['batch','招生批次',[...new Set(D.groups.filter(g=>g[1]===state.profile.track).map(g=>g[2]))],'全部批次'],['category','学科门类',D.dicts.cat.map((n,i)=>[i,n]),'全部门类'],['own','办学性质',arr('own'),'全部性质'],['level','办学层次',arr('lvl'),'全部层次'],['type','院校类型',arr('typ'),'全部类型'],['tag','院校特色',Object.keys(D.tags),'全部标签'],['fee','组内最高年学费',[[5000,'不超过 5,000 元'],[8000,'不超过 8,000 元'],[15000,'不超过 15,000 元'],[30000,'不超过 30,000 元']],'不限（含未知）'],['tier','与往年位次的对照',Object.entries(C.bands).map(([k,b])=>[k,b.name]),'全部对照']];

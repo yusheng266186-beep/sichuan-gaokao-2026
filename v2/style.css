@@ -137,3 +137,30 @@ body.stage a,body.stage summary{min-height:44px}
   .about-qq{min-height:44px;padding:0 14px}
   .about-row b{font-size:16px}
 }
+
+/* ==========================================================================
+   打开 / 退出 的动效
+   --------------------------------------------------------------------------
+   关闭原来是一瞬间消失 —— 弹窗「啪」地不见了，没有退场过程。
+   这里补一段短促的淡出（比入场更快，符合「退出要干脆」的直觉）。
+   注意用 forwards 是必要的：动画结束后元素要保持透明，
+   等 animationend 之后再真正 close()，否则会看到一帧闪烁。
+   ========================================================================== */
+@keyframes dialog-out{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px) scale(.985)}}
+dialog.closing{animation:dialog-out .17s var(--ease) forwards;pointer-events:none}
+
+/* 详情弹窗是从右侧滑入的，退场也往右走，方向一致 */
+@keyframes detail-out{from{opacity:1;transform:none}to{opacity:0;transform:translateX(28px)}}
+.detail-dialog.closing{animation:detail-out .2s var(--ease) forwards}
+
+/* 遮罩跟着一起淡 */
+dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
+
+@media(prefers-reduced-motion:reduce){
+  dialog.closing,.detail-dialog.closing{animation:none!important;opacity:0}
+}
+
+/* 手机端：侧滑关闭时给一点跟手感 —— 手指右移时弹窗跟着走 */
+@media(pointer:coarse){
+  .detail-dialog{overscroll-behavior:contain}
+}

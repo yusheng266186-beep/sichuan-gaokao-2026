@@ -1562,7 +1562,31 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
   font-size:12.5px;color:var(--faint);line-height:1.9;text-align:center}
 body.touch .about-row .qq,body.stage .about-row .qq{min-height:44px;padding:0 14px}
 @media(max-width:900px){body .about-row .qq{min-height:44px;padding:0 14px}}
-</style>
+/* ==========================================================================
+   抽屉的打开 / 退出动效
+   --------------------------------------------------------------------------
+   抽屉本身早有滑入滑出（transform 过渡），遮罩也有淡入淡出。
+   但内容是「啪」地整块出现 —— 这里补上逐个淡入，让打开有节奏。
+   .drawer-h 那条 animation 只在页面加载时跑过一次，抽屉再打开时不会重播，
+   所以把动画挂在每次都会被重建的 .drawer-b 子元素上。
+   用 backwards 而不是 both：延迟期间停在起始态，动画结束回到正常样式，
+   万一动画没跑起来（reduced-motion 等）内容也一定是可见的。
+   ========================================================================== */
+.drawer-b>.dsec:nth-child(1){animation-delay:.02s}
+.drawer-b>.dsec:nth-child(2){animation-delay:.06s}
+.drawer-b>.dsec:nth-child(3){animation-delay:.1s}
+.drawer-b>.dsec:nth-child(4){animation-delay:.14s}
+.drawer-b>.dsec:nth-child(5){animation-delay:.18s}
+.drawer-b>.dsec:nth-child(n+6){animation-delay:.2s}
+/* 退出时让内容先淡掉再滑走，比整块平移更干净 */
+.drawer:not(.on) .drawer-b{opacity:0;transition:opacity .12s var(--ease)}
+.drawer.on .drawer-b{opacity:1;transition:opacity .22s var(--ease) .04s}
+@media(prefers-reduced-motion:reduce){
+  .drawer-b>.dsec{animation:none!important}
+  .drawer-b,.drawer.on .drawer-b{opacity:1;transition:none}
+}/* 抽屉打开时收起悬浮条：它本来就压在详情内容上，而且读详情时用不到演示模式 */
+.floatbar{transition:opacity .2s var(--ease),transform .2s var(--ease)}
+body.no-scroll .floatbar{opacity:0;pointer-events:none;transform:translateY(10px)}</style>
 <script>
 /* ==========================================================================
    关于落点（彩蛋）

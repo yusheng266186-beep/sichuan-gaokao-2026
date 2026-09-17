@@ -1679,16 +1679,72 @@ function openMajor(oi) {
   openDrawer('#drawer');
 }
 
+/* ==========================================================================
+   抽屉的开关 —— 手机上的退出是这里的重点
+   --------------------------------------------------------------------------
+   原来只有三条退出路径：× 按钮、点遮罩、Esc 键。
+   问题是抽屉在手机上宽 min(620px,100%)，375px 屏就是满屏 —— 遮罩被完全盖住，
+   「点外面关掉」根本点不到；而 Esc 键手机上没有。于是只剩右上角一个按钮，
+   学生点进院校/专业详情后经常找不到怎么退出来。
+   补两条手机原生的退出方式：
+     ① 返回键 / 返回手势 —— 打开时压一条历史记录，popstate 时关掉详情而不是离开站点；
+     ② 向右滑动手势 —— 和大多数手机上的侧滑面板一致。
+   ========================================================================== */
+const LD_OVERLAY = 'ldOverlay';
+/* 用独立标志而不是 history.state 判断：goto() 里的 replaceState 会把
+   状态对象整个换掉，靠 state 上的标记会被冲没。 */
+let overlayPushed = false;
+function anyDrawerOpen() {
+  return $('#drawer').classList.contains('on') || $('#basket').classList.contains('on');
+}
 function openDrawer(sel) {
+  const wasOpen = anyDrawerOpen();
   $('#scrim').classList.add('on');
   $(sel).classList.add('on');
   document.body.classList.add('no-scroll');
+  /* 只在「从无到有」时压栈，避免抽屉之间互切压出一堆历史 */
+  if (!wasOpen && !overlayPushed) {
+    overlayPushed = true;
+    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { overlayPushed = false; }
+  }
+  bindDrawerSwipe($(sel));
 }
-function closeDrawers() {
+/* skipHistory：由 popstate 触发的关闭、或「关掉抽屉顺带跳页」的情况，
+   不能再调 history.back() —— 前者会把用户弹出站点，后者会跟路由打架。 */
+function closeDrawers(skipHistory) {
   $('#scrim').classList.remove('on');
   $('#drawer').classList.remove('on');
   $('#basket').classList.remove('on');
   document.body.classList.remove('no-scroll');
+  if (overlayPushed) {
+    overlayPushed = false;
+    if (!skipHistory) { try { history.back(); } catch (e) { } }
+  }
+}
+window.addEventListener('popstate', () => {
+  if (!overlayPushed) return;
+  overlayPushed = false;
+  if (anyDrawerOpen()) closeDrawers(true);
+});
+
+/* 向右滑动关闭。只在抽屉内部起手、且横向位移明显时生效，
+   避免和纵向滚动、以及卡片里的横滑手势打架。 */
+function bindDrawerSwipe(el) {
+  if (!el || el.dataset.swipeBound) return;
+  el.dataset.swipeBound = '1';
+  let x0 = 0, y0 = 0, live = false;
+  el.addEventListener('touchstart', ev => {
+    if (ev.touches.length !== 1) return;
+    x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; live = true;
+  }, { passive: true });
+  el.addEventListener('touchmove', ev => {
+    if (!live) return;
+    const dx = ev.touches[0].clientX - x0, dy = ev.touches[0].clientY - y0;
+    /* 纵向为主就放弃，交给页面滚动 */
+    if (Math.abs(dy) > Math.abs(dx)) { live = false; return; }
+    if (dx > 74) { live = false; closeDrawers(); }
+  }, { passive: true });
+  el.addEventListener('touchend', () => { live = false; }, { passive: true });
 }
 
 /* ==========================================================================
@@ -2530,7 +2586,9 @@ function bind() {
       state.sTag = lgj.dataset.lgjump;
       if (state.page !== 'schools') goto('schools');
       renderSchoolChips(); renderSchools(true);
-      closeDrawers();
+      /* 这里是「关抽屉顺带跳页」，不是单纯退出：调 history.back() 会和
+         goto() 的 replaceState 抢同一个历史条目，导致地址栏和界面对不上。 */
+      closeDrawers(true);
       return;
     }
     /* 标签说明入口：院校页芯片行末尾的按钮 + 筛选面板「院校层次」旁的问号 */
