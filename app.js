@@ -2516,6 +2516,10 @@ function bind() {
     if (el.closest('[data-more-schools]')) { state.sPage++; renderSchools(false); return; }
     if (el.closest('[data-all-schools]')) { state.sShowAll = true; renderSchools(false); return; }
 
+    /* 关于落点（彩蛋） */
+    if (el.closest('[data-about]')) { openAbout(); return; }
+    if (el.closest('[data-copy-qq]')) { copyQQ(e); return; }
+
     /* 院校标签 */
     const st = el.closest('[data-stag]');
     if (st) { const v = st.dataset.stag || null; state.sTag = (state.sTag === v) ? null : v; renderSchoolChips(); renderSchools(true); return; }
@@ -2860,6 +2864,7 @@ function bindTouchFeedback() {
     bind();
     Gestures.init();
     bindTouchFeedback();
+    bindAboutEgg();
     syncSubjectUI();
     renderSchoolChips();
     renderMajorPicker();

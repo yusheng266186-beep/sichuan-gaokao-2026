@@ -1532,7 +1532,118 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
   body.touch .floatbar .v2link,body.touch .floatbar .stage-toggle,
   body.stage .floatbar .v2link,body.stage .floatbar .stage-toggle{height:44px}
 }
-</style></style>
+/* ==========================================================================
+   关于落点（彩蛋）—— 这个站点是为荣县一中高三四班的同学做的。
+   入口：导航栏「关于」、任意「落点」准星 logo。
+   ========================================================================== */
+.about{display:flex;flex-direction:column;align-items:center;gap:6px;
+  padding:26px 0 22px;border-bottom:1px solid var(--line-2);margin-bottom:18px}
+.about .mk{width:46px;height:46px;color:var(--navy)}
+.about .mk .ring{transform-origin:13px 13px;animation:spin 24s linear infinite}
+.about .t{font-size:19px;font-weight:600;letter-spacing:.06em}
+.about .s{font-size:12px;color:var(--faint);letter-spacing:.14em}
+.about-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:4px 15px;margin-top:10px}
+.about-row{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:12px 0;border-bottom:1px solid var(--line-2)}
+.about-row:last-child{border-bottom:0}
+.about-row .k{font-size:13px;color:var(--dim)}
+.about-row b{font-size:16px;font-weight:600;letter-spacing:.02em}
+.about-row .qq{display:inline-flex;align-items:center;gap:8px;font-size:16px;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--navy-3);padding:6px 12px;border-radius:8px;
+  border:1px dashed #c3cbd8;transition:all var(--t) var(--ease)}
+.about-row .qq:hover{border-style:solid;border-color:var(--navy-3);background:var(--surface-2)}
+.about-row .qq:active{transform:scale(.97)}
+.about-row .qq i{font-style:normal;font-size:12px;font-weight:400;color:var(--dim)}
+.about-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;
+  color:var(--navy-3);border-bottom:1px solid #c3d0bb;transition:border-color .25s}
+.about-link:hover{border-color:var(--navy-3)}
+.about-fin{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line-2);
+  font-size:12.5px;color:var(--faint);line-height:1.9;text-align:center}
+body.touch .about-row .qq,body.stage .about-row .qq{min-height:44px;padding:0 14px}
+@media(max-width:900px){body .about-row .qq{min-height:44px;padding:0 14px}}
+</style>
+<script>
+/* ==========================================================================
+   关于落点（彩蛋）
+   --------------------------------------------------------------------------
+   这个站点是为荣县一中高三四班的同学做的。写在这里，是因为工具用得久了
+   容易忘记它是为谁做的 —— 数据会更新，界面会迭代，但最初的那批人只有一届。
+   入口：导航栏「关于」、任意「落点」准星 logo（侧栏 / 移动底栏 / 启动页）。
+   ========================================================================== */
+const ABOUT = { who: '予笙', qq: '2661864056', klass: '荣县一中高三四班' };
+
+function copyQQ(e) {
+  if (e) e.preventDefault();
+  const done = () => toast('QQ 号已复制，可在 QQ 里搜索');
+  const manual = () => toast('长按选中复制：' + ABOUT.qq);
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = ABOUT.qq;
+    ta.style.cssText = 'position:fixed;top:-100px;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    ta.remove();
+    if (ok) done(); else manual();
+  };
+  /* clipboard API 在非 HTTPS（本地 file:// 就是）下不可用，必须有兜底 */
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ABOUT.qq).then(done).catch(fallback);
+  } else fallback();
+}
+
+function openAbout() {
+  $('#d-title').textContent = '关于落点';
+  $('#d-sub').innerHTML = '<span>为 ' + esc(ABOUT.klass) + ' 做的一个小工具</span>';
+  $('#d-body').innerHTML = ''
+    + '<div class="dsec"><div class="about">'
+    + '<svg class="mk" viewBox="0 0 26 26" aria-hidden="true">'
+    + '<circle class="ring" cx="13" cy="13" r="11.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5"/>'
+    + '<circle cx="13" cy="13" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>'
+    + '<circle cx="13" cy="13" r="2.3" fill="currentColor"/>'
+    + '<path d="M13 1.4v4M13 20.6v4M1.4 13h4M20.6 13h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>'
+    + '</svg><div class="t">落点</div><div class="s">SICHUAN · 2026</div></div></div>'
+
+    + '<div class="dsec"><h3>这是什么</h3>'
+    + '<div class="explain" style="margin-top:0">一个查四川 2026 高考志愿的工具。'
+    + '<b>为 ' + esc(ABOUT.klass) + ' 的同学做的</b> —— 把散在各处的招生计划、'
+    + '往年录取位次、学费和专业评价收到一处，让填志愿那几天少翻几张表、少问几个人。</div>'
+    + '<div class="explain" style="margin-top:8px">位次是一把尺子：你的分数定出刻度，'
+    + '院校专业组是尺子上的区间，你要找的是自己的<b>落点</b>。名字就是这么来的。</div></div>'
+
+    + '<div class="dsec"><h3>有问题、有意见，直接找我</h3>'
+    + '<div class="explain" style="margin-top:0">数据错漏、哪里看不懂、想要什么功能，都可以说。'
+    + '<b>你们的反馈会真的改进它</b> —— 这个站点从第一版到现在，'
+    + '改的每一处几乎都来自你们用出来的问题。</div>'
+    + '<div class="about-card">'
+    + '<div class="about-row"><span class="k">开发者</span><b>' + esc(ABOUT.who) + '</b></div>'
+    + '<div class="about-row"><span class="k">QQ</span>'
+    + '<button class="qq" data-copy-qq>' + ABOUT.qq + '<i>点击复制</i></button></div></div>'
+    + '<a class="about-link" href="https://github.com/yusheng266186-beep/beichen" target="_blank" rel="noopener">'
+    + '另一个项目：北辰 · 高一选科探索 ↗</a></div>'
+
+    + '<div class="dsec"><div class="explain" style="margin-top:0">'
+    + '数据来自四川省教育考试院招生考试报、教育部阳光高考信息公开平台、各校官方招生章程，'
+    + '以及 2022–2025 年录取数据。<b>本站提供的是往年位置的对照，不预测录取概率</b>；'
+    + '正式填报请以当年招生计划、学校招生章程为准。</div>'
+    + '<div class="about-fin">2026 · 四川 · 落点<br>为 ' + esc(ABOUT.klass) + ' 而做</div></div>';
+  openDrawer('#drawer');
+}
+
+/* 点任意「落点」准星 logo 也能打开 —— 这就是彩蛋本身 */
+function bindAboutEgg() {
+  $$('.logo').forEach(el => {
+    if (el.dataset.eggBound) return;
+    el.dataset.eggBound = '1';
+    el.style.cursor = 'pointer';
+    el.setAttribute('title', '关于落点');
+    el.addEventListener('click', openAbout);
+  });
+}
+
+</script>
+
 </head>
 <body>
 <!-- 第二代入口已移入右下角悬浮条（见 body 末尾的 .floatbar），
@@ -1602,6 +1713,10 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
     <button class="navitem" data-page="plan"><i class="mk"></i>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16l-1.4 12.1a2 2 0 0 1-2 1.9H7.4a2 2 0 0 1-2-1.9Z"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7"/></svg>
       志愿表<span class="tail" id="rail-plan">0</span></button>
+    <div class="rail-label">关于</div>
+    <button class="navitem" data-about><i class="mk"></i>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8.2v.01"/><path d="M10.6 11.6h1.4v4.6"/></svg>
+      关于<span class="tail">?</span></button>
     <div class="rail-foot" id="rail-foot"></div>
   </nav>
 

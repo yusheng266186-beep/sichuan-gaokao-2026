@@ -96,3 +96,44 @@ body.stage a,body.stage summary{min-height:44px}
   body .button,body .icon-button,body .mini-action{min-height:44px;min-width:44px}
   body select,body .select,body .select-wrap select{min-height:44px}
 }
+/* ==========================================================================
+   关于落点 · 彩蛋
+   这个站点是为荣县一中高三四班的同学做的。
+   入口：页脚「关于这个站点」按钮；另外点页脚的版本号也能打开（彩蛋本身）。
+   ========================================================================== */
+#about-dialog{max-width:640px}
+#about-dialog .dialog-description{margin-bottom:22px}
+.about-secs{display:flex;flex-direction:column;gap:18px}
+.about-secs article h3{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+.about-secs article p{font-size:13px;line-height:1.95;color:var(--dim)}
+.about-secs article b{color:var(--ink);font-weight:600}
+.about-card{border:1px solid var(--line);border-radius:8px;padding:2px 16px;margin-top:22px;
+  background:var(--paper)}
+.about-row{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:13px 0;border-bottom:1px solid var(--line)}
+.about-row:last-child{border-bottom:0}
+.about-row .k{font-size:13px;color:var(--dim)}
+.about-row b{font-size:17px;font-weight:600;letter-spacing:.02em}
+.about-qq{display:inline-flex;align-items:center;gap:9px;font-size:17px;font-weight:600;
+  font-variant-numeric:tabular-nums;color:var(--forest);padding:7px 14px;border-radius:8px;
+  border:1px dashed #c3cbd8;background:none;cursor:pointer;
+  transition:border-color var(--t) var(--ease),background var(--t) var(--ease)}
+.about-qq:hover{border-style:solid;border-color:var(--forest);background:var(--soft)}
+.about-qq:active{transform:scale(.97)}
+.about-qq i{font-style:normal;font-size:12px;font-weight:400;color:var(--faint)}
+.about-links{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px}
+.about-links a{font-size:13px;color:var(--forest);border-bottom:1px solid #c9d6de;
+  transition:border-color var(--t) var(--ease)}
+.about-links a:hover{border-color:var(--forest)}
+.about-fin{margin-top:26px;padding-top:18px;border-top:1px dashed var(--line);
+  font-size:12px;color:var(--faint);line-height:1.9;text-align:center;letter-spacing:.04em}
+/* 页脚版本号是彩蛋触发器。必须是 <button> —— 委托处理器只认 closest('button,a')，
+   挂在 <span> 上点了没反应。样式对齐原来的 footer>span。 */
+.footer-version{width:100%;background:none;border:0;cursor:pointer;text-align:center;
+  font-size:12px;color:var(--faint);letter-spacing:1px;
+  transition:color var(--t) var(--ease)}
+.footer-version:hover{color:var(--forest)}
+@media(max-width:520px){
+  .about-qq{min-height:44px;padding:0 14px}
+  .about-row b{font-size:16px}
+}

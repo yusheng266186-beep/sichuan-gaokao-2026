@@ -14,6 +14,31 @@
   const storage={read(k,fallback){try{return JSON.parse(localStorage.getItem(k))??fallback;}catch{return fallback;}},write(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true;}catch{if(Date.now()-lastStorageWarning>5000){toast('浏览器未允许本地保存；请导出清单留存。');lastStorageWarning=Date.now();}return false;}}};
   function toast(message){$('#toast').textContent=message;$('#toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),3000);}
   function persistProfile(){storage.write('luodian.v2.profile',state.profile);}
+/* ==========================================================================
+   关于落点 · 彩蛋
+   这个站点是为荣县一中高三四班的同学做的。入口：页脚「关于这个站点」按钮，
+   以及页脚那行版本号（点一下就知道是什么）。
+   ========================================================================== */
+const ABOUT_QQ = '2661864056';
+function copyAboutQQ(btn) {
+  const done = () => toast('QQ 号已复制，可在 QQ 里搜索');
+  const manual = () => toast('长按选中复制：' + ABOUT_QQ);
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = ABOUT_QQ;
+    ta.style.cssText = 'position:fixed;top:-100px;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+    ta.remove();
+    if (ok) done(); else manual();
+  };
+  /* clipboard API 在非 HTTPS 下不可用（本地 file:// 就是），必须有兜底 */
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ABOUT_QQ).then(done).catch(fallback);
+  } else fallback();
+}
+
   function badge(i){const g=D.groups[i],t=g[1]===state.profile.track?C.tier(pos.rank,g[G.r25]):'none',b=C.bands[t];return `<span class="tier-badge ${b.color}">${b.name}</span>`;}
   function fee(g){if(!(g[G.feeMin]>0))return '学费待补充';return `${nf(g[G.feeMin])}${g[G.feeMax]>g[G.feeMin]?'–'+nf(g[G.feeMax]):''} 元/年`;}
   function majorNames(i,limit=4){return [...new Set(D.links[i].map(l=>D.dicts.major[l[0]]))].slice(0,limit).join(' · ');}
@@ -200,7 +225,7 @@
   function bind(){
     document.addEventListener('click',e=>{
       const b=e.target.closest('button,a');if(!b)return;
-      if(b.matches('[data-close]')){closeDialog(b.closest('dialog'));return;}
+      if(b.closest('[data-about]')){openDialog('about-dialog');return;}if(b.closest('[data-copy-qq]')){copyAboutQQ(b);return;}if(b.matches('[data-close]')){closeDialog(b.closest('dialog'));return;}
       if(b.dataset.route){navigate(b.dataset.route);return;}
       if(b.dataset.track!==undefined){state.profile.track=Number(b.dataset.track);state.profile.demo=false;setupControls();refresh();persistProfile();return;}
       if(b.dataset.view){chooseView(b.dataset.view);return;}
@@ -219,7 +244,7 @@
       if(b.dataset.move!==undefined){const n=Number(b.dataset.move),next=n+Number(b.dataset.dir);if(next>=0&&next<state.saved.length){[state.saved[n],state.saved[next]]=[state.saved[next],state.saved[n]];storage.write('luodian.v2.saved',state.saved);renderSaved();}return;}
       if(b.dataset.retryDetails!==undefined){$('#professional-content').innerHTML='<div class="loading-inline">正在重试读取专业明细…</div>';fillProfessional(Number(b.dataset.retryDetails),++detailToken);return;}
       switch(b.dataset.action){
-        case 'help':openDialog('help-dialog');break;
+        case 'help':openDialog('help-dialog');break;case 'about':openDialog('about-dialog');break;
         case 'stage':setStage(!state.stage);break;
         case 'fullscreen':fullscreen();break;
         case 'stage-position':navigate('explore');$('.position-panel').scrollIntoView({behavior:'smooth',block:'center'});$('#position-value').focus({preventScroll:true});break;
