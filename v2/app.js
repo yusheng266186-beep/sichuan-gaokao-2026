@@ -144,7 +144,7 @@ function copyAboutQQ(btn) {
     if(reset)state.limit=state.pageSize;viewRows=aggregate();renderFilterChips();renderResults();renderDistribution();updateURL();
   }
   function scheduleProfile(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>{refresh();persistProfile();},90);}
-  function updateURL(){if(!D)return;const p=new URLSearchParams();p.set('track',state.profile.track);if(state.profile.value!=='')p.set(state.profile.mode,state.profile.value);if(state.profile.demo)p.set('demo','1');if(state.profile.subjects.length)p.set('subjects',state.profile.subjects.join(','));for(const k of ['q','province','region','category','major','own','level','type','tag','fee','tier','scoreFrom','scoreTo'])if(state.filters[k]!=='')p.set(k,state.filters[k]);if(state.filters.batch!=='本科批B段')p.set('batch',state.filters.batch);if(state.filters.subjectOnly)p.set('subjectOnly','1');if(state.filters.line)p.set('line','1');if(state.filters.sort!=='close')p.set('sort',state.filters.sort);if(state.view!=='groups')p.set('view',state.view);if(state.layout!=='list')p.set('layout',state.layout);if(state.stage)p.set('stage','1');if(document.body.classList.contains('noanim'))p.set('noanim','1');try{history.replaceState(null,'','?'+p+'#'+state.route);}catch{}}
+  function updateURL(){if(!D)return;const p=new URLSearchParams();p.set('track',state.profile.track);if(state.profile.value!=='')p.set(state.profile.mode,state.profile.value);if(state.profile.demo)p.set('demo','1');if(state.profile.subjects.length)p.set('subjects',state.profile.subjects.join(','));for(const k of ['q','province','region','category','major','own','level','type','tag','fee','tier','scoreFrom','scoreTo'])if(state.filters[k]!=='')p.set(k,state.filters[k]);if(state.filters.batch!=='本科批B段')p.set('batch',state.filters.batch);if(state.filters.subjectOnly)p.set('subjectOnly','1');if(state.filters.line)p.set('line','1');if(state.filters.sort!=='close')p.set('sort',state.filters.sort);if(state.view!=='groups')p.set('view',state.view);if(state.layout!=='list')p.set('layout',state.layout);if(state.stage)p.set('stage','1');if(document.body.classList.contains('noanim'))p.set('noanim','1');try{history.replaceState(history.state,'','?'+p+'#'+state.route);}catch{}}
   function navigate(route){state.route=route==='saved'?'saved':'explore';$('#explore-page').hidden=state.route!=='explore';$('#saved-page').hidden=state.route!=='saved';$$('[data-route]').forEach(b=>{const on=b.dataset.route===state.route;b.classList.toggle('active',on);if(on)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});if(state.route==='saved')renderSaved();updateURL();window.scrollTo({top:0,behavior:'smooth'});}
   function chooseView(view){state.view=['groups','schools','majors'].includes(view)?view:'groups';$$('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view===state.view)));refresh({land:false});}
   function chooseMajor(m){state.filters.major=Number(m);state.view='groups';$$('[data-view]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.view==='groups')));refresh({land:false});$('#explorer').scrollIntoView({behavior:'smooth'});}
@@ -179,6 +179,12 @@ function copyAboutQQ(btn) {
 let dialogStack = [];
 let dialogReplaying = false;
 
+/* 只有「当前历史条目确实是自己压的」才敢调 history.back()。
+   back() 是退到浏览器历史的上一条；那条如果不是我们的，
+   用户看到的就是「点 × 直接退出了网页」。失败方向必须安全：
+   宁可留一条多余记录，也绝不 back() 到站外。 */
+let pushOk=false;
+function overlayIsOurs(){return pushOk&&!!(history.state&&history.state.ldDialog);}
 function updateDialogBack() {
   const b = document.getElementById('d-back');
   if (b) b.hidden = dialogStack.length < 2;
@@ -187,7 +193,7 @@ function dialogGo(fn, arg) {
   if (dialogReplaying) return;
   dialogStack.push({ fn: fn, arg: arg });
   if (dialogStack.length === 1) {
-    try { history.pushState({ ldDialog: 1 }, '', location.href); } catch (e) { }
+    try { history.pushState({ ldDialog: 1 }, '', location.href); pushOk = true; } catch (e) { pushOk = false; }
   }
   updateDialogBack();
 }
@@ -228,7 +234,7 @@ function dialogBack(skipHistory) {
       el.close();
       previousFocus?.focus?.({preventScroll:true});
       const had=dialogStack.length>0;dialogStack=[];updateDialogBack();
-      if(had&&!skipHistory){try{history.back();}catch(e){}}
+      if(had&&!skipHistory&&overlayIsOurs()){pushOk=false;try{history.back();}catch(e){}}
     };
     /* reduced-motion 下不等动画；另兜一个定时器 —— 万一 animationend 没触发
        （动画被禁用、元素被隐藏），弹窗不能卡在 closing 状态关不掉。 */
@@ -240,12 +246,13 @@ function dialogBack(skipHistory) {
     setTimeout(once,300);
   }
   window.addEventListener('popstate',()=>{
+    pushOk=false;   // 条目已被系统返回消费
     if(!dialogStack.length)return;
     if(dialogStack.length>1){
       /* 还有上级：退一级，并把历史记录补回来，让下一次返回依然生效 */
       dialogStack.pop();
       replayDialog(dialogStack[dialogStack.length-1]);
-      try{history.pushState({ldDialog:1},'',location.href);}catch(e){}
+      try{history.pushState({ldDialog:1},'',location.href);pushOk=true;}catch(e){pushOk=false;}
     }else{
       dialogStack.pop();updateDialogBack();
       const open=document.querySelector('dialog[open]');

@@ -1710,6 +1710,24 @@ function openMajor(oi) {
    ========================================================================== */
 let drawerStack = [];        // [{ fn, arg, scroll }]
 let drawerReplaying = false; // 回放上一级时不要重复入栈
+const LD_OVERLAY = 'ldOverlay';
+
+/* 只有「当前历史条目确实是自己压的」才敢调 history.back()。
+   ----------------------------------------------------------------------
+   back() 的语义是「退到浏览器历史的上一条」。那条如果不是我们压的，
+   用户看到的就是「点 × 直接退出了网页」—— 之前就是这样：
+   下面引用了未定义的 LD_OVERLAY，pushState 抛 ReferenceError 被空 catch 吞掉，
+   历史里根本没留下我们的条目，closeDrawers 却照样 back()，一路退到站外。
+
+   两道保险：
+   ① 压栈成功才认为「有我们的一条」（pushOk）；
+   ② 关闭前再用 history.state 上的标记复核一次。
+   goto() 的 replaceState 会换掉 state，所以那里必须保留 history.state ——
+   标记丢了只是退不回去、留一条多余记录，绝不会退到站外，失败方向是安全的。 */
+let pushOk = false;
+function overlayIsOurs() {
+  return pushOk && !!(history.state && history.state[LD_OVERLAY]);
+}
 
 function drawerTop() { return drawerStack[drawerStack.length - 1] || null; }
 
@@ -1721,7 +1739,9 @@ function drawerGo(fn, arg) {
   if (cur) cur.scroll = box ? box.scrollTop : 0;   // 记住离开时的位置
   drawerStack.push({ fn: fn, arg: arg, scroll: 0 });
   if (drawerStack.length === 1) {
-    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { }
+    /* 压栈失败要如实记下来 —— 之前空 catch 吞掉异常，后面照样 back() 就退到站外了 */
+    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); pushOk = true; }
+    catch (e) { pushOk = false; }
   }
   updateDrawerBack();
 }
@@ -1769,15 +1789,20 @@ function closeDrawers(skipHistory) {
   $('#drawer').classList.remove('on');
   $('#basket').classList.remove('on');
   document.body.classList.remove('no-scroll');
-  if (had && !skipHistory) { try { history.back(); } catch (e) { } }
+  /* 复核：当前条目确实是我们的才 back()，否则宁可留一条多余记录 */
+  if (had && !skipHistory && overlayIsOurs()) {
+    pushOk = false;
+    try { history.back(); } catch (e) { }
+  }
 }
 window.addEventListener('popstate', () => {
+  pushOk = false;   // 条目已被系统返回消费
   if (!drawerStack.length) return;
   if (drawerStack.length > 1) {
     /* 还有上级：退一级，并把历史记录补回来，让下一次返回依然生效 */
     drawerStack.pop();
     replayDrawer(drawerTop());
-    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { }
+    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); pushOk = true; } catch (e) { pushOk = false; }
   } else {
     drawerStack.pop();
     updateDrawerBack();
@@ -2465,7 +2490,7 @@ function goto(p, silent) {
   if (CAN_VT && !silent) document.startViewTransition(swap);
   else swap();
 
-  if (!silent) { try { history.replaceState(null, '', '#' + p); } catch (e) { } }
+  if (!silent) { try { history.replaceState(history.state, '', '#' + p); } catch (e) { } }
   window.scrollTo(0, 0);
   if (p === 'groups' && !lastList.length) applyQuery(true);
   if (p === 'major' && !$('#mp-list').children.length) renderMajorPicker();
