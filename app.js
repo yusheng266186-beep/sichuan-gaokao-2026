@@ -1245,6 +1245,7 @@ function openTagLegend(focusTag) {
     </div></div>
     <div class="dsec"><h3>全部标签</h3><div class="lglist">${body}</div></div>`;
   openDrawer('#drawer');
+  drawerGo('openTagLegend', focusTag);
   if (focusTag) {
     setTimeout(() => {
       const el = document.querySelector(`[data-lg="${focusTag}"]`);
@@ -1551,6 +1552,7 @@ function openGroup(i) {
     </div>`;
 
   openDrawer('#drawer');
+  drawerGo('openGroup', i);
 }
 const siOfGroup = i => D.groups[i][G_.SCHOOL];
 
@@ -1626,6 +1628,7 @@ function openSchool(si) {
     ${s.charter ? `<a class="src" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--navy-3);margin-top:12px" href="${esc(s.charter)}" target="_blank" rel="noopener">招生章程入口</a>` : ''}
     </div>` + blocks;
   openDrawer('#drawer');
+  drawerGo('openSchool', si);
 }
 
 function openMajor(oi) {
@@ -1677,6 +1680,7 @@ function openMajor(oi) {
     <div class="dsec"><h3>历年录取</h3><div class="years">${years}</div></div>
     <div style="display:flex;gap:9px"><button class="btn ghost" data-open-group="${o[O_.GROUP]}" style="flex:1">查看整个专业组</button></div>`;
   openDrawer('#drawer');
+  drawerGo('openMajor', oi);
 }
 
 /* ==========================================================================
@@ -1690,41 +1694,95 @@ function openMajor(oi) {
      ① 返回键 / 返回手势 —— 打开时压一条历史记录，popstate 时关掉详情而不是离开站点；
      ② 向右滑动手势 —— 和大多数手机上的侧滑面板一致。
    ========================================================================== */
-const LD_OVERLAY = 'ldOverlay';
-/* 用独立标志而不是 history.state 判断：goto() 里的 replaceState 会把
-   状态对象整个换掉，靠 state 上的标记会被冲没。 */
-let overlayPushed = false;
-function anyDrawerOpen() {
-  return $('#drawer').classList.contains('on') || $('#basket').classList.contains('on');
+/* ==========================================================================
+   抽屉的层级栈
+   --------------------------------------------------------------------------
+   抽屉是同一个元素复用了 4 种内容：标签说明 / 专业组 / 院校 / 专业。
+   「院校列表 → 点卡片进院校详情 → 点专业进专业详情」这条路径上，
+   抽屉从头到尾都是开着的。
+
+   原来只用「抽屉是否已打开」判断要不要压历史记录，于是第二级、第三级都漏了：
+   在专业详情按返回，一次就把整个抽屉关掉，直接回到院校列表 —— 中间那一级丢了。
+
+   现在逐级记录，返回时逐级回退；并且只压「一条」历史记录，层级在应用内维护：
+   返回时先退一级、再把这条记录补回去，这样下一次返回仍然可用；
+   栈空了才真正关闭抽屉。这样避免 history.go(-n) 的计数对不上。
+   ========================================================================== */
+let drawerStack = [];        // [{ fn, arg, scroll }]
+let drawerReplaying = false; // 回放上一级时不要重复入栈
+
+function drawerTop() { return drawerStack[drawerStack.length - 1] || null; }
+
+/* 由各 open* 函数在渲染完成后调用，记下这一级 */
+function drawerGo(fn, arg) {
+  if (drawerReplaying) return;
+  const box = $('#d-body');
+  const cur = drawerTop();
+  if (cur) cur.scroll = box ? box.scrollTop : 0;   // 记住离开时的位置
+  drawerStack.push({ fn: fn, arg: arg, scroll: 0 });
+  if (drawerStack.length === 1) {
+    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { }
+  }
+  updateDrawerBack();
 }
+
+function updateDrawerBack() {
+  const b = $('#d-back');
+  if (b) b.hidden = drawerStack.length < 2;   // 只有一级时没有「上一级」可回
+}
+
+function replayDrawer(rec) {
+  drawerReplaying = true;
+  try {
+    ({ openTagLegend: openTagLegend, openGroup: openGroup,
+       openSchool: openSchool, openMajor: openMajor })[rec.fn](rec.arg);
+  } catch (e) { }
+  drawerReplaying = false;
+  const box = $('#d-body');
+  if (box) box.scrollTop = rec.scroll || 0;
+  updateDrawerBack();
+}
+
+/* 返回上一级：有上级就回退，没有就关掉 */
+function drawerBack(skipHistory) {
+  if (!drawerStack.length) return false;
+  drawerStack.pop();
+  const top = drawerTop();
+  if (!top) { closeDrawers(skipHistory); return false; }
+  replayDrawer(top);
+  return true;
+}
+
 function openDrawer(sel) {
-  const wasOpen = anyDrawerOpen();
   $('#scrim').classList.add('on');
   $(sel).classList.add('on');
   document.body.classList.add('no-scroll');
-  /* 只在「从无到有」时压栈，避免抽屉之间互切压出一堆历史 */
-  if (!wasOpen && !overlayPushed) {
-    overlayPushed = true;
-    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { overlayPushed = false; }
-  }
   bindDrawerSwipe($(sel));
 }
 /* skipHistory：由 popstate 触发的关闭、或「关掉抽屉顺带跳页」的情况，
    不能再调 history.back() —— 前者会把用户弹出站点，后者会跟路由打架。 */
 function closeDrawers(skipHistory) {
+  const had = drawerStack.length > 0;
+  drawerStack = [];
+  updateDrawerBack();
   $('#scrim').classList.remove('on');
   $('#drawer').classList.remove('on');
   $('#basket').classList.remove('on');
   document.body.classList.remove('no-scroll');
-  if (overlayPushed) {
-    overlayPushed = false;
-    if (!skipHistory) { try { history.back(); } catch (e) { } }
-  }
+  if (had && !skipHistory) { try { history.back(); } catch (e) { } }
 }
 window.addEventListener('popstate', () => {
-  if (!overlayPushed) return;
-  overlayPushed = false;
-  if (anyDrawerOpen()) closeDrawers(true);
+  if (!drawerStack.length) return;
+  if (drawerStack.length > 1) {
+    /* 还有上级：退一级，并把历史记录补回来，让下一次返回依然生效 */
+    drawerStack.pop();
+    replayDrawer(drawerTop());
+    try { history.pushState({ [LD_OVERLAY]: 1 }, '', location.href); } catch (e) { }
+  } else {
+    drawerStack.pop();
+    updateDrawerBack();
+    closeDrawers(true);
+  }
 });
 
 /* 向右滑动关闭。只在抽屉内部起手、且横向位移明显时生效，
@@ -2598,6 +2656,7 @@ function bind() {
     }
 
     /* 抽屉关闭 */
+    if (el.closest('#d-back')) { drawerBack(); return; }
     if (el.closest('#d-x') || el.closest('#bk-x') || el === $('#scrim')) { closeDrawers(); return; }
     if (el.closest('#basket-btn')) { renderBasket(); openDrawer('#basket'); return; }
     if (el.closest('#plan-export')) { exportPlan(); return; }

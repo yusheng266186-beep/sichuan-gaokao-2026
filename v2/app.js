@@ -165,14 +165,58 @@ function copyAboutQQ(btn) {
      于是只剩右上角一个按钮，学生点进院校/专业详情后常常找不到怎么退出来。
      补两条手机原生的退出方式：① 返回键/返回手势 ② 向右滑动。
      关闭原来是一瞬间消失，现在补上退场淡出。 */
-  let dialogPushed=false;
+/* ==========================================================================
+   弹窗层级栈
+   --------------------------------------------------------------------------
+   院校详情（openSchool）里点一个专业组就进到专业组详情（openGroup），
+   两者用的是同一个 detail-dialog，从头到尾都开着。
+   原来只压一条历史记录，于是「专业组详情 → 返回」一次把整个弹窗关掉，
+   直接回到列表 —— 中间那一级丢了。
+
+   现在逐级记录、逐级回退；仍然只压一条历史记录，层级在应用内维护：
+   返回时先退一级再把记录补回去，下一次返回依然可用；栈空了才真正关闭。
+   ========================================================================== */
+let dialogStack = [];
+let dialogReplaying = false;
+
+function updateDialogBack() {
+  const b = document.getElementById('d-back');
+  if (b) b.hidden = dialogStack.length < 2;
+}
+function dialogGo(fn, arg) {
+  if (dialogReplaying) return;
+  dialogStack.push({ fn: fn, arg: arg });
+  if (dialogStack.length === 1) {
+    try { history.pushState({ ldDialog: 1 }, '', location.href); } catch (e) { }
+  }
+  updateDialogBack();
+}
+function replayDialog(rec) {
+  dialogReplaying = true;
+  try {
+    ({ openSchool: openSchool, openGroup: openGroup, openComparison: openComparison })[rec.fn](rec.arg);
+  } catch (e) { }
+  dialogReplaying = false;
+  updateDialogBack();
+}
+/* 返回上一级 */
+function dialogBack(skipHistory) {
+  if (!dialogStack.length) return false;
+  dialogStack.pop();
+  const top = dialogStack[dialogStack.length - 1];
+  if (!top) { closeDialog(document.querySelector('dialog[open]'), skipHistory); return false; }
+  replayDialog(top);
+  return true;
+}
+
+
   function openDialog(id){
     previousFocus=document.activeElement;
     $$('dialog[open]').forEach(d=>d.close());
     const el=$('#'+id);
     el.showModal();el.scrollTop=0;
     el.querySelector('[data-close]')?.focus({preventScroll:true});
-    if(!dialogPushed){dialogPushed=true;try{history.pushState({ldDialog:id},'',location.href);}catch(e){dialogPushed=false;}}
+    /* 历史记录由 dialogGo 在渲染完成后压，这里只管显隐 */
     bindDialogSwipe(el);
   }
   /* skipHistory：popstate 触发的关闭不能再调 history.back()，否则把用户弹出站点 */
@@ -183,7 +227,8 @@ function copyAboutQQ(btn) {
       el.classList.remove('closing');
       el.close();
       previousFocus?.focus?.({preventScroll:true});
-      if(dialogPushed){dialogPushed=false;if(!skipHistory){try{history.back();}catch(e){}}}
+      const had=dialogStack.length>0;dialogStack=[];updateDialogBack();
+      if(had&&!skipHistory){try{history.back();}catch(e){}}
     };
     /* reduced-motion 下不等动画；另兜一个定时器 —— 万一 animationend 没触发
        （动画被禁用、元素被隐藏），弹窗不能卡在 closing 状态关不掉。 */
@@ -195,10 +240,17 @@ function copyAboutQQ(btn) {
     setTimeout(once,300);
   }
   window.addEventListener('popstate',()=>{
-    if(!dialogPushed)return;
-    dialogPushed=false;
-    const open=document.querySelector('dialog[open]');
-    if(open)closeDialog(open,true);
+    if(!dialogStack.length)return;
+    if(dialogStack.length>1){
+      /* 还有上级：退一级，并把历史记录补回来，让下一次返回依然生效 */
+      dialogStack.pop();
+      replayDialog(dialogStack[dialogStack.length-1]);
+      try{history.pushState({ldDialog:1},'',location.href);}catch(e){}
+    }else{
+      dialogStack.pop();updateDialogBack();
+      const open=document.querySelector('dialog[open]');
+      if(open)closeDialog(open,true);
+    }
   });
   /* 向右滑动关闭。纵向为主就放弃，交给页面滚动。 */
   function bindDialogSwipe(el){
@@ -262,27 +314,27 @@ function copyAboutQQ(btn) {
     const change=g[G.plan]>0&&g[G.admit25]>0?`2026 计划 ${g[G.plan]} 人；2025 实际录取 ${g[G.admit25]} 人。${g[G.admit25]>=10?'计划与去年录取人数相差 '+Math.round((g[G.plan]/g[G.admit25]-1)*100)+'%。':'去年录取基数较小，不显示百分比。'}该比较不自动代表同口径扩招。`:'';
     $('#detail-kicker').textContent='专业组详情';
     $('#detail-content').innerHTML=`<div class="detail-head"><div class="tag-row">${(s.tag||[]).slice(0,5).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub"><span>${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)}</span><span>院校代码 ${esc(s.code)}</span></div><div class="detail-sub"><b>${esc(groupLabel(g))}</b><span>${trackName(g[1])} · ${esc(g[G.batch])} · ${esc(g[G.type])}</span></div><div class="detail-actions"><button class="button primary" data-save="${i}" aria-pressed="${saved}">${icon.heart}${saved?'已加入备选':'加入备选'}</button><button class="button" data-compare="${i}" aria-pressed="${state.compare.includes(i)}">${icon.compare}加入对比</button>${url?`<a class="button" href="${esc(url)}" target="_blank" rel="noopener">招生章程 ↗</a>`:''}</div></div><section class="detail-section"><h3>你与这个组的距离 ${badge(i)}</h3>${positionComparison(i)}</section><section class="detail-section"><h3>先看清这些条件</h3><div class="detail-stats"><div class="detail-stat"><span>再选科目要求</span><strong style="font-size:19px">${esc(g[G.req]||'未提供')}</strong><small>${status==='ok'?'符合已知选科要求':status==='mismatch'?'与你的选科不匹配':status==='unset'?'设置两门再选科目后核验':'要求未提供，请核对章程'}</small></div><div class="detail-stat"><span>2026 招生计划</span><strong>${valid(g[G.plan])}</strong><small>人 · 本专业组合计</small></div><div class="detail-stat"><span>招生考试报学费</span><strong style="font-size:17px">${g[G.feeMin]>0?nf(g[G.feeMin])+(g[G.feeMax]>g[G.feeMin]?'–'+nf(g[G.feeMax]):''):'—'}</strong><small>元 / 年 · 组内专业区间</small></div></div>${g[G.type]!=='普通类'||g[G.batch]!=='本科批B段'&&g[G.batch]!=='高职(专科)批'?'<p class="note-box warn" style="margin-top:14px">这个组涉及特殊类型或批次，分数和选科匹配不等于具备报考资格。请另外核对资格、体检和投档要求。</p>':''}${change?`<p class="fine-print">${esc(change)}</p>`:''}</section><section class="detail-section"><h3>本组历年调档线 <span>${g[G.r25]>0?(g[G.source]===0?'源表标记：官方值':'源表推导值'):'暂无2025线'}</span></h3>${historyTable(g)}<p class="fine-print">2024 及以前为旧文理口径，不参与本页冲稳保分档。组内专业和招生计划可能跨年调整。</p></section><section class="detail-section"><h3>组内专业 <span>${D.links[i].length} 个专业名称组合</span></h3><p class="note-box">进组之后才分专业。热门专业的录取要求可能高于组线，展开每个专业查看它自己的分数、学费与评价字段。</p><div id="professional-content" style="margin-top:14px"><div class="loading-inline">正在读取专业明细；首次打开需要多一点时间…</div></div></section><section class="detail-section"><button class="button" data-school="${g[0]}">看看这所学校的其他专业组 ↗</button></section>`;
-    openDialog('detail-dialog');const token=++detailToken;fillProfessional(i,token);
+    openDialog('detail-dialog');const token=++detailToken;fillProfessional(i,token);dialogGo('openGroup',i);
   }
   function openSchool(si){
     const s=D.schools[si];if(!s)return;detailToken++;openedDetail={type:'school',i:si};const gs=D.schoolGroups[si].filter(i=>D.groups[i][1]===state.profile.track),lines=gs.map(i=>D.groups[i][G.s25]).filter(n=>n>0),url=safeURL(s.charter);
     $('#detail-kicker').textContent='院校详情';
     $('#detail-content').innerHTML=`<div class="detail-head"><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)} · ${esc(s.typ)} · ${esc(s.lvl)}</div><div class="tag-row">${(s.tag||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="detail-actions">${url?`<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener">查看招生章程 ↗</a>`:''}<button class="button" data-action="help">了解标签含义 ↗</button></div></div><section class="detail-section"><h3>在四川的招生轮廓 <span>${trackName(state.profile.track)} · 本页展示全部批次</span></h3><div class="detail-stats"><div class="detail-stat"><span>专业组数量</span><strong>${gs.length}</strong><small>当前科类，全部批次</small></div><div class="detail-stat"><span>2025 组线范围</span><strong style="font-size:20px">${lines.length?Math.min(...lines)+'–'+Math.max(...lines):'—'}</strong><small>分 · 不等于一条院校线</small></div><div class="detail-stat"><span>院校代码</span><strong>${esc(s.code)}</strong><small>${esc(s.lvl)}招生记录</small></div></div><p class="fine-print">专业组线分别对应不同批次、类型及专业组合，不能把最低一条线视为整所学校所有专业的门槛。</p></section><section class="detail-section"><h3>专业组，一组一组看</h3><div class="detail-groups">${gs.length?gs.map(i=>{const g=D.groups[i];return `<button class="detail-group-row" data-group="${i}"><span>${esc(groupLabel(g))} · ${esc(g[G.req]||'选科待补充')}<small>${esc(g[G.batch])}<br>${esc(majorNames(i,3))}</small></span><span>${badge(i)}<small>2025 ${valid(g[G.s25])} 分 ↗</small></span></button>`;}).join(''):'<p>本校在当前科类暂无收录记录。可以切换科类后再看看。</p>'}</div></section><section class="detail-section"><h3>标签的含义</h3>${(s.tag||[]).filter(t=>D.tags[t]).map(t=>`<details><summary>${esc(t)} · ${esc(D.tags[t].title)}</summary><p>${esc(D.tags[t].desc)}</p><p>${esc(D.tags[t].caution)}</p>${safeURL(D.tags[t].source)?`<a class="source-link" href="${esc(safeURL(D.tags[t].source))}" target="_blank" rel="noopener">查看标签来源 ↗</a>`:''}</details>`).join('')||'<p>暂无可展开的标签说明。</p>'}</section>`;
-    openDialog('detail-dialog');
+    openDialog('detail-dialog');dialogGo('openSchool',si);
   }
   function openComparison(){
     if(state.compare.length<2){toast('再选择一个专业组，就可以并排对比。');return;}
     const ids=state.compare;
     const rows=[['科类 / 批次',i=>`${trackName(D.groups[i][1])}<small>${esc(D.groups[i][2])} / ${esc(D.groups[i][3])}</small>`],['选科要求',i=>subjectText(D.groups[i])],['2025 组线',i=>`<strong>${valid(D.groups[i][G.s25])}</strong> 分`],['2025 最低位次',i=>valid(D.groups[i][G.r25])],['与你的对照',i=>badge(i)],['2026 招生计划',i=>valid(D.groups[i][G.plan])+' 人'],['招生考试报学费',i=>esc(fee(D.groups[i]))],['组内专业',i=>esc(majorNames(i,12))+(D.links[i].length>12?' 等':'')],['继续了解',i=>`<button class="button" data-group="${i}">查看完整详情 ↗</button>`]];
     $('#compare-content').innerHTML=`<p class="fine-print" style="margin-bottom:17px">按同一套字段比较；科类不同的组不做分差判断。往年组线不代表专业录取线，缺失数据不作推断。</p><div class="compare-table-wrap"><table class="compare-table"><thead><tr><th>对比维度</th>${ids.map(i=>{const g=D.groups[i],s=D.schools[g[0]];return `<th>${esc(s.n)}<small>${esc(groupLabel(g))} · ${esc(s.prov)} · ${esc(s.own)}</small></th>`;}).join('')}</tr></thead><tbody>${rows.map(([label,render])=>`<tr><th>${label}</th>${ids.map(i=>`<td>${render(i)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    openDialog('compare-dialog');
+    openDialog('compare-dialog');dialogGo('openComparison',null);
   }
   function setStage(on){state.stage=on;document.body.classList.toggle('stage',on);$('#stage-dock').hidden=!on;$$('[data-action="stage"]').forEach(b=>b.setAttribute('aria-pressed',String(on)));storage.write('luodian.v2.stage',on);updateURL();if(on)toast('课堂演示已开启：更大的文字和触摸区域。');}
   async function fullscreen(){try{if(document.fullscreenElement)await document.exitFullscreen();else if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else toast('此浏览器暂不支持全屏；可继续使用放大的演示界面。');}catch{toast('浏览器未允许全屏，演示界面仍可正常使用。');}}
   function bind(){
     document.addEventListener('click',e=>{
       const b=e.target.closest('button,a');if(!b)return;
-      if(b.closest('[data-about]')){openDialog('about-dialog');return;}if(b.closest('[data-copy-qq]')){copyAboutQQ(b);return;}if(b.matches('[data-close]')){closeDialog(b.closest('dialog'));return;}
+      if(b.closest('[data-about]')){openDialog('about-dialog');return;}if(b.closest('[data-copy-qq]')){copyAboutQQ(b);return;}if(b.closest('#d-back')){dialogBack();return;}if(b.matches('[data-close]')){closeDialog(b.closest('dialog'));return;}
       if(b.dataset.route){navigate(b.dataset.route);return;}
       if(b.dataset.track!==undefined){state.profile.track=Number(b.dataset.track);state.profile.demo=false;setupControls();refresh();persistProfile();return;}
       if(b.dataset.view){chooseView(b.dataset.view);return;}

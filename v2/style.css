@@ -164,3 +164,8 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 @media(pointer:coarse){
   .detail-dialog{overscroll-behavior:contain}
 }
+
+/* 详情弹窗里的「返回上一级」：院校详情 → 专业组详情 需要明确的回退入口 */
+.back-button{font-size:24px;line-height:1;margin-right:2px}
+.back-button[hidden]{display:none}
+@media(max-width:520px){.back-button{min-width:44px;min-height:44px}}
