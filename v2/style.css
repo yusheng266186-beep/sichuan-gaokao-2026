@@ -169,3 +169,7 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 .back-button{font-size:24px;line-height:1;margin-right:2px}
 .back-button[hidden]{display:none}
 @media(max-width:520px){.back-button{min-width:44px;min-height:44px}}
+/* iOS Safari 聚焦 <16px 的输入框会自动放大页面。手机上搜索框给到 16px。 */
+@media(max-width:760px){
+  .search-box input{font-size:16px}
+}

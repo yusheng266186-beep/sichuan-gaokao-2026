@@ -89,9 +89,11 @@ svg{display:block}
 /* 顶栏 */
 .brandcell{grid-area:brand;display:flex;align-items:center;gap:10px;padding:0 18px;
   border-right:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--surface)}
-.logo{width:26px;height:26px;flex-shrink:0;color:var(--navy)}
-.logo .ring{transform-origin:13px 13px;animation:spin 24s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+.logo{width:27px;height:27px;flex-shrink:0;color:var(--navy)}
+.logo .ring{animation:calib 3.4s var(--ease) infinite}
+
+/* 缺口轻微呼吸：像仪表在自检，比整圈旋转克制，也不会把设计好的缺口位置转跑 */
+@keyframes calib{0%,100%{stroke-dashoffset:0}50%{stroke-dashoffset:7}}
 .brand-name{font-size:16px;font-weight:600;letter-spacing:.02em}
 .brand-sub{font-size:12px;color:var(--faint);letter-spacing:.1em;margin-top:-1px}
 
@@ -1539,7 +1541,7 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
 .about{display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:26px 0 22px;border-bottom:1px solid var(--line-2);margin-bottom:18px}
 .about .mk{width:46px;height:46px;color:var(--navy)}
-.about .mk .ring{transform-origin:13px 13px;animation:spin 24s linear infinite}
+.about .mk .ring{animation:calib 3.4s var(--ease) infinite}
 .about .t{font-size:19px;font-weight:600;letter-spacing:.06em}
 .about .s{font-size:12px;color:var(--faint);letter-spacing:.14em}
 .about-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
@@ -1593,7 +1595,23 @@ body.no-scroll .floatbar{opacity:0;pointer-events:none;transform:translateY(10px
 .drawer-h .bak:active{transform:scale(.92)}
 .drawer-h .bak[hidden]{display:none}
 body.touch .drawer-h .bak,body.stage .drawer-h .bak{width:44px;height:44px}
-@media(max-width:900px){body .drawer-h .bak{width:44px;height:44px}}</style>
+@media(max-width:900px){body .drawer-h .bak{width:44px;height:44px}}/* 搜索框右侧的「/」聚焦提示。原来它写在 placeholder 里
+   （"搜院校 / 专业 / 城市　按 / 聚焦"），手机窄屏下 placeholder 被截断，
+   而且键盘快捷键在手机上本来就没意义。改成独立的 kbd，窄屏直接隐藏。 */
+.search .skey{position:absolute;right:38px;top:50%;transform:translateY(-50%);
+  font:12px/1 var(--sans);color:var(--faint);padding:3px 7px;border:1px solid var(--line);
+  border-radius:5px;background:var(--surface);pointer-events:none}
+@media(max-width:900px){body .search .skey{display:none}}
+body.touch .search .skey,body.stage .search .skey{display:none}/* iOS Safari 在聚焦 font-size < 16px 的输入框时会自动把页面放大一下 ——
+   手机上搜索框一律 16px。数字输入框本来就远大于 16px，不受影响。 */
+@media(max-width:900px){
+  body .search input,body .mp-search input{font-size:16px}
+}/* 手机端顶栏的「志愿表」按钮是多余的 —— 底部导航里已经有「志愿表」入口。
+   它占掉约 90px，把搜索框挤到只剩 120px，placeholder 只能显示四五个字。
+   窄屏隐藏它，把宽度让给搜索。 */
+@media(max-width:900px){
+  body #basket-btn{display:none}
+}</style>
 <script>
 /* ==========================================================================
    关于落点（彩蛋）
@@ -1626,15 +1644,10 @@ function copyQQ(e) {
 
 function openAbout() {
   $('#d-title').textContent = '关于落点';
-  $('#d-sub').innerHTML = '<span>为 ' + esc(ABOUT.klass) + ' 做的一个小工具</span>';
+  $('#d-sub').innerHTML = '<span>为' + esc(ABOUT.klass) + '做的一个小工具</span>';
   $('#d-body').innerHTML = ''
     + '<div class="dsec"><div class="about">'
-    + '<svg class="mk" viewBox="0 0 26 26" aria-hidden="true">'
-    + '<circle class="ring" cx="13" cy="13" r="11.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5"/>'
-    + '<circle cx="13" cy="13" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>'
-    + '<circle cx="13" cy="13" r="2.3" fill="currentColor"/>'
-    + '<path d="M13 1.4v4M13 20.6v4M1.4 13h4M20.6 13h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>'
-    + '</svg><div class="t">落点</div><div class="s">SICHUAN · 2026</div></div></div>'
+    + '<svg class="mk" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg><div class="t">落点</div><div class="s">SICHUAN · 2026</div></div></div>'
 
     + '<div class="dsec"><h3>这是什么</h3>'
     + '<div class="explain" style="margin-top:0">一个查四川 2026 高考志愿的工具。'
@@ -1658,7 +1671,7 @@ function openAbout() {
     + '数据来自四川省教育考试院招生考试报、教育部阳光高考信息公开平台、各校官方招生章程，'
     + '以及 2022–2025 年录取数据。<b>本站提供的是往年位置的对照，不预测录取概率</b>；'
     + '正式填报请以当年招生计划、学校招生章程为准。</div>'
-    + '<div class="about-fin">2026 · 四川 · 落点<br>为 ' + esc(ABOUT.klass) + ' 而做</div></div>';
+    + '<div class="about-fin">2026 · 四川 · 落点<br>为' + esc(ABOUT.klass) + '而做</div></div>';
   openDrawer('#drawer');
 }
 
@@ -1683,12 +1696,7 @@ function bindAboutEgg() {
 
 <!-- ===================== 载入 ===================== -->
 <div class="boot" id="boot"><div class="boot-in">
-  <svg class="logo" viewBox="0 0 26 26" aria-hidden="true">
-    <circle class="ring" cx="13" cy="13" r="11.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5"/>
-    <circle cx="13" cy="13" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>
-    <circle cx="13" cy="13" r="2.3" fill="currentColor"/>
-    <path d="M13 1.4v4M13 20.6v4M1.4 13h4M20.6 13h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-  </svg>
+  <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
   <div class="t">落点</div>
   <div class="s" id="boot-s">正在准备<span class="dots"><i></i><i></i><i></i></span></div>
   <div class="bootbar"><i id="boot-b"></i></div>
@@ -1699,20 +1707,16 @@ function bindAboutEgg() {
 <div class="shell">
 
   <div class="brandcell">
-    <svg class="logo" viewBox="0 0 26 26" aria-hidden="true">
-      <circle class="ring" cx="13" cy="13" r="11.4" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 5"/>
-      <circle cx="13" cy="13" r="7" fill="none" stroke="currentColor" stroke-width="1" opacity=".45"/>
-      <circle cx="13" cy="13" r="2.3" fill="currentColor"/>
-      <path d="M13 1.4v4M13 20.6v4M1.4 13h4M20.6 13h4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-    </svg>
+    <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
     <div><div class="brand-name">落点</div><div class="brand-sub">SC · 2026</div></div>
   </div>
 
   <div class="topbar">
     <label class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.6 15.6 4.4 4.4"/></svg>
-      <input id="q" type="search" placeholder="搜院校 / 专业 / 城市　按 / 聚焦" autocomplete="off" spellcheck="false">
+      <input id="q" type="search" placeholder="搜院校 / 专业 / 城市" autocomplete="off" spellcheck="false">
       <button class="clr" id="q-x" aria-label="清空"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+      <kbd class="skey" aria-hidden="true">/</kbd>
     </label>
     <div class="topbar-spacer"></div>
     <div class="trackseg" id="trackseg">
