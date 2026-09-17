@@ -179,3 +179,40 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 .help-about{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
 .help-about .button{width:100%;justify-content:center}
 @media(max-width:520px){.help-about .button{min-height:44px}}
+/* ==========================================================================
+   版式细节修正（用几何测量定位，不是目测）
+   ========================================================================== */
+
+/* 1) 页脚四个链接
+   原来 footer>div 是 flex-wrap，四项宽度和超出容器 —— 前三项占满第一行，
+   「项目记录」被挤到第二行单独左对齐，看起来就是「没对齐」。
+   窄屏改成 2×2 网格：说明类两项一行、外链类两项一行，左边缘齐平。 */
+@media(max-width:760px){
+  footer>div{width:100%;margin-left:0;display:grid;grid-template-columns:1fr 1fr;
+    gap:8px 14px;align-items:center}
+  footer>div>*{justify-content:flex-start;text-align:left}
+  footer{align-items:flex-start}
+  footer p{max-width:none}
+}
+
+/* 2) 「我的分数」那一行的 − / + 按钮
+   窄屏规则写的 margin-top:21px 是为了在旧版式里对齐大数字，
+   但父级是 align-items:center —— margin 会把它们整体压低约 10px，
+   同一行里按钮明显低于左右两栏。改为不加外边距、由父级居中。 */
+@media(max-width:520px){
+  .score-controls{display:flex;flex-direction:row;gap:5px;margin-top:0;align-self:center}
+}
+
+/* 3) 数字 + 「分」溢出
+   .number-wrap input 宽 108px，加 gap 4 加「分」12px = 124px，
+   而容器只有 105px。flex 子项默认 min-width:auto，不肯收缩到内容宽度以下，
+   所以「分」被顶出容器 19px。
+   给 input 和 wrap 都开 min-width:0，让它按剩余空间收缩；「分」不参与收缩。 */
+.number-wrap{min-width:0}
+.number-wrap input{min-width:0}
+.number-wrap>span{flex-shrink:0}
+
+/* 4) 兜底：窄屏下任何输入框都不许撑破父容器 */
+@media(max-width:760px){
+  input,select,textarea{min-width:0;max-width:100%}
+}
