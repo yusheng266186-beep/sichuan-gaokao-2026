@@ -1460,7 +1460,79 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
 .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
 .boot-err{display:none;margin-top:16px;font-size:12px;color:var(--chong);line-height:1.8;text-align:left}
 .boot-err.on{display:block}
-</style>
+/* ==========================================================================
+   手机端 —— 目标：手机上的体验不弱于白板
+   实测（375px 真机宽度，用 iframe 拿到真实视口，headless 窗口最小 518px 量不准）
+   发现两个硬伤：
+   ① 顶栏里搜索框把科类切换挤成竖排 —— 「物理类」被渲染成 物/理/类 三行；
+   ② 右下角悬浮条（探索第二代 + 演示模式）竖着压在卡片列表上，挡内容。
+   ========================================================================== */
+@media(max-width:900px){
+  /* 顶栏：搜索框可压缩，科类切换不许换行 */
+  body .topbar{gap:8px;padding:0 12px}
+  body .search{flex:1 1 auto;min-width:0}
+  body .topbar-spacer{display:none}
+  body .trackseg{flex-shrink:0}
+  body .trackseg button{white-space:nowrap;padding:0 11px}
+  /* 品牌格：移动端的 grid 模板里没有 "brand" 区（只有 top/main），
+     .brandcell 被自动排到页面最底部，把「落点」挤成 33px 宽的竖排并溢出 49px。
+     手机上垂直空间金贵，直接不显示 —— 页面标题已经说明了这是什么。 */
+  body .brandcell{display:none}
+  /* 悬浮条改横排并收窄：竖排会占掉两行卡片的高度 */
+  .floatbar,body.touch .floatbar{right:12px;bottom:84px;gap:8px;
+    flex-direction:row;align-items:center}
+  .stage-toggle,.floatbar .v2link,
+  body.touch .stage-toggle,body.touch .floatbar .v2link,
+  body.stage .stage-toggle,body.stage .floatbar .v2link{
+    height:40px;font-size:12.5px;padding:0 14px;border-radius:20px}
+  .floatbar .stage-toggle svg{width:15px;height:15px}
+  /* 正文留出底部空间，最后一张卡片不被悬浮条压住 */
+  body .main{padding-bottom:170px}
+
+  /* ---- 窄屏等同触摸 ----
+     原来点击区放大挂在 body.touch 上，依赖 JS 探测触摸能力。
+     但「窄屏 = 手机」是更可靠的判据，也不会因为探测失败而失效。
+     这里按宽度兜底，与 body.touch 规则等价。 */
+  body .sortsel{height:44px;font-size:13.5px}
+  body .chip{height:44px;padding:0 16px;font-size:13px}
+  body .chip.mini{height:42px;padding:0 13px;font-size:12.5px}
+  body .btn{height:44px;padding:0 18px}
+  body .btn.ghost{height:44px}
+  body .btn.sm{height:40px}
+  body .trackseg button,body .seg button{height:44px;font-size:13.5px;padding:0 14px}
+  body .add{width:46px;height:46px}
+  body .drawer-h .x,body .prm{width:44px;height:44px}
+  body .search .clr,body .mp-search .clr{width:40px;height:40px}
+  body .navitem{padding:12px 12px;font-size:14px}
+  body .search input{height:44px;font-size:14px}
+  body .taghelp{height:44px;padding:0 15px}
+  /* 「清除」在触摸屏上没有 hover，必须常显 */
+  body .fgrp-head .clr{opacity:1;font-size:13px;min-height:44px;display:inline-flex;
+    align-items:center;padding:0 14px;margin:-10px -14px;border-radius:8px;
+    background:var(--surface-2);border:1px solid var(--line)}
+  /* 卡片元信息：7 项在 375px 下各占一行，一张卡接近 500px 高。
+     手机上收紧间距并允许两列并排。 */
+  body .gcard{padding:13px 13px}
+  body .gcard .cmeta{gap:6px 12px;font-size:12.5px;margin-top:6px}
+  body .gcard .sname{font-size:14.5px;gap:6px}
+  body .gcard .majors{margin-top:9px;padding-top:9px}
+}
+@media(max-width:400px){
+  body .trackseg button{padding:0 9px;font-size:12px}
+  .floatbar .v2link,body.touch .floatbar .v2link{padding:0 11px}
+  body .chip{padding:0 13px;font-size:12.5px}
+}
+@media(max-width:900px){
+  /* 最后一轮：浮动条与顶栏按钮补到 44px。
+     注意用的是 body 前缀 —— `.rank-summary .text-button{min-height:28px}`
+     这类规则特异性更高，不提升选择器权重就会被顶掉。 */
+  body .clr,body .search .clr,body .mp-search .clr{width:44px;height:44px}
+  body .btn.ghost{height:44px;min-height:44px}
+  body .floatbar .v2link,body .floatbar .stage-toggle,
+  body.touch .floatbar .v2link,body.touch .floatbar .stage-toggle,
+  body.stage .floatbar .v2link,body.stage .floatbar .stage-toggle{height:44px}
+}
+</style></style>
 </head>
 <body>
 <!-- 第二代入口已移入右下角悬浮条（见 body 末尾的 .floatbar），
