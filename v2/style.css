@@ -173,3 +173,9 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 @media(max-width:760px){
   .search-box input{font-size:16px}
 }
+/* 帮助面板底部的「关于落点」入口。
+   彩蛋原来只在页脚 —— 那在长页面最底部，手机上几乎翻不到。
+   「?」是用户找「关于」时最自然的落点，把入口放这儿。 */
+.help-about{margin-top:24px;padding-top:20px;border-top:1px solid var(--line)}
+.help-about .button{width:100%;justify-content:center}
+@media(max-width:520px){.help-about .button{min-height:44px}}

@@ -577,7 +577,7 @@ function refreshFacets() {
    5. 状态
    ========================================================================== */
 const state = {
-  page: 'groups', track: 0, mode: 'score', score: 600, rank: null, rankHi: null, rankLo: null,
+  page: 'groups', track: (typeof applyPrefTrack === 'function' && applyPrefTrack() !== null) ? applyPrefTrack() : 0, mode: 'score', score: 600, rank: null, rankHi: null, rankLo: null,
   view: 'all', tierFilter: null, sort: 'close', q: '',
   filters: {}, showAllChips: {},
   sTag: null, sSort: 'groups', sPage: 1, groupPage: 1,
@@ -2658,6 +2658,15 @@ function bind() {
     /* 关于落点（彩蛋） */
     if (el.closest('[data-about]')) { openAbout(); return; }
     if (el.closest('[data-copy-qq]')) { copyQQ(e); return; }
+    /* 关于与设置里的偏好项 */
+    const prefEl = el.closest('[data-pref]');
+    if (prefEl) {
+      const w = prefEl.dataset.pref;
+      if (w === 'clear') clearLocal();
+      else if (w === 'motion') setMotion(prefEl.dataset.val);
+      else if (w === 'track') setPrefTrack(+prefEl.dataset.val);
+      return;
+    }
 
     /* 院校标签 */
     const st = el.closest('[data-stag]');
@@ -3007,6 +3016,7 @@ function bindTouchFeedback() {
     Gestures.init();
     bindTouchFeedback();
     bindAboutEgg();
+    applyMotion();   // 用户选的动效偏好（跟随系统 / 全部 / 减少）
     syncSubjectUI();
     renderSchoolChips();
     renderMajorPicker();

@@ -1611,6 +1611,32 @@ body.touch .search .skey,body.stage .search .skey{display:none}/* iOS Safari 在
    窄屏隐藏它，把宽度让给搜索。 */
 @media(max-width:900px){
   body #basket-btn{display:none}
+}/* ---- 关于与设置：设置行 ---- */
+.dsec .hint{margin-left:9px;font-size:12px;color:var(--faint);font-weight:400}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:13px 0;border-bottom:1px solid var(--line-2);flex-wrap:wrap}
+.setrow:last-child{border-bottom:0}
+.setrow .sk b{display:block;font-size:13.5px;font-weight:600}
+.setrow .sk span{display:block;font-size:12px;color:var(--faint);margin-top:3px}
+.segv{display:flex;background:var(--surface-3);border-radius:9px;padding:3px;gap:2px;flex-shrink:0}
+.segbtn{padding:0 13px;height:32px;border-radius:7px;font-size:12.5px;color:var(--dim);
+  transition:background var(--t) var(--ease),color var(--t) var(--ease)}
+.segbtn.on{background:var(--surface);color:var(--ink);font-weight:600;
+  box-shadow:0 1px 3px #1d344f14}
+.btn.danger{color:#a4463c;border-color:#e2c9c5}
+.btn.danger:hover{background:#fbf2f0;border-color:#cf9c94}
+/* 关于面板里的外链卡片 */
+.about-links{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.about-links a{display:block;padding:12px 15px;border:1px solid var(--line);border-radius:var(--r);
+  background:var(--surface);transition:border-color var(--t) var(--ease),transform var(--t) var(--ease)}
+.about-links a:hover{border-color:var(--navy-3);transform:translateX(2px)}
+.about-links a b{display:block;font-size:13.5px;font-weight:600;color:var(--navy-3)}
+.about-links a span{display:block;font-size:12px;color:var(--dim);margin-top:3px}
+body.touch .segbtn,body.stage .segbtn{height:44px;padding:0 16px;font-size:13.5px}
+body.touch .about-links a,body.stage .about-links a{padding:15px 17px}
+@media(max-width:900px){
+  body .segbtn{height:44px;padding:0 15px;font-size:13.5px}
+  body .setrow{padding:15px 0}
 }</style>
 <script>
 /* ==========================================================================
@@ -1620,7 +1646,19 @@ body.touch .search .skey,body.stage .search .skey{display:none}/* iOS Safari 在
    容易忘记它是为谁做的 —— 数据会更新，界面会迭代，但最初的那批人只有一届。
    入口：导航栏「关于」、任意「落点」准星 logo（侧栏 / 移动底栏 / 启动页）。
    ========================================================================== */
+/* ==========================================================================
+   关于与设置
+   --------------------------------------------------------------------------
+   这里不只是「关于」—— 一些和账号无关、只影响本机的小设置也放在这里：
+   动效、默认科类、清除本机数据。它们都只写 localStorage，不上传任何东西。
+   ========================================================================== */
 const ABOUT = { who: '予笙', qq: '2661864056', klass: '荣县一中高三四班' };
+const PREF = {
+  motion: 'luodian.motion',   // system | full | reduce
+  track: 'luodian.track'      // 0 物理类 / 1 历史类
+};
+function prefGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+function prefSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
 
 function copyQQ(e) {
   if (e) e.preventDefault();
@@ -1642,19 +1680,85 @@ function copyQQ(e) {
   } else fallback();
 }
 
+/* ---- 设置项 ---- */
+function applyMotion() {
+  const v = prefGet(PREF.motion, 'system');
+  /* 复用已有的 body.noanim —— 那套「关掉全部动画并强制可见」的规则很全，
+     另起一个类名等于把它再抄一遍，还容易漏掉某个元素、让内容停在 opacity:0。
+     ?noanim=1 是给截图和排错用的，优先级最高，不能被偏好覆盖掉。 */
+  const byQuery = new URLSearchParams(location.search).get('noanim') === '1';
+  const reduce = byQuery || v === 'reduce' ||
+    (v === 'system' && matchMedia('(prefers-reduced-motion:reduce)').matches);
+  document.body.classList.toggle('noanim', reduce);
+  return v;
+}
+function setMotion(v) {
+  prefSet(PREF.motion, v);
+  applyMotion();
+  toast(v === 'reduce' ? '已减少动效' : v === 'full' ? '已开启全部动效' : '动效跟随系统');
+  openAbout();
+}
+function applyPrefTrack() {
+  const t = prefGet(PREF.track, null);
+  if (t === '0' || t === '1') return +t;
+  return null;
+}
+function setPrefTrack(t) {
+  prefSet(PREF.track, String(t));
+  toast('默认科类：' + TRACK_CN[t] + '类');
+  openAbout();
+}
+function clearLocal() {
+  const keys = [PREF.motion, PREF.track, 'luodian.stage', 'luodian.subjects.v1',
+                'luodian.basket.v1', 'luodian.hinted'];
+  keys.forEach(k => { try { localStorage.removeItem(k); } catch (e) { } });
+  toast('本机数据已清除，正在重新载入');
+  setTimeout(() => { try { location.reload(); } catch (e) { } }, 700);
+}
+
 function openAbout() {
-  $('#d-title').textContent = '关于落点';
-  $('#d-sub').innerHTML = '<span>为' + esc(ABOUT.klass) + '做的一个小工具</span>';
+  const mv = prefGet(PREF.motion, 'system');
+  const seg = (cur, val, label, fn) =>
+    `<button class="segbtn${cur === val ? ' on' : ''}" data-pref="${fn}" data-val="${val}">${label}</button>`;
+  const gen = D.meta.gen ? String(D.meta.gen).replace('T', ' ').slice(0, 16) : '—';
+
+  $('#d-title').textContent = '关于与设置';
+  $('#d-sub').innerHTML = '<span>为' + esc(ABOUT.klass) + '做的</span>';
   $('#d-body').innerHTML = ''
     + '<div class="dsec"><div class="about">'
-    + '<svg class="mk" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg><div class="t">落点</div><div class="s">SICHUAN · 2026</div></div></div>'
+    + '<svg class="mk" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="53.2 9.6" transform="rotate(-62.5 14 14)"/><circle cx="14" cy="14" r="2.9" fill="currentColor"/></svg><div class="t">落点</div><div class="s">SICHUAN · 2026</div></div></div>'
 
     + '<div class="dsec"><h3>这是什么</h3>'
     + '<div class="explain" style="margin-top:0">一个查四川 2026 高考志愿的工具。'
-    + '<b>为 ' + esc(ABOUT.klass) + ' 的同学做的</b> —— 把散在各处的招生计划、'
+    + '<b>为' + esc(ABOUT.klass) + '的同学做的</b> —— 把散在各处的招生计划、'
     + '往年录取位次、学费和专业评价收到一处，让填志愿那几天少翻几张表、少问几个人。</div>'
     + '<div class="explain" style="margin-top:8px">位次是一把尺子：你的分数定出刻度，'
     + '院校专业组是尺子上的区间，你要找的是自己的<b>落点</b>。名字就是这么来的。</div></div>'
+
+    + '<div class="dsec"><h3>设置<span class="hint">只存在这台设备上，不上传</span></h3>'
+    + '<div class="setrow"><div class="sk"><b>动效</b><span>动画与过渡的强弱</span></div>'
+    + '<div class="segv">' + seg(mv, 'system', '跟随系统', 'motion')
+    + seg(mv, 'full', '全部开启', 'motion') + seg(mv, 'reduce', '减少动效', 'motion') + '</div></div>'
+    + '<div class="setrow"><div class="sk"><b>默认科类</b><span>下次打开时默认选中的科类</span></div>'
+    + '<div class="segv">' + seg(prefGet(PREF.track, 'x'), '0', '物理类', 'track')
+    + seg(prefGet(PREF.track, 'x'), '1', '历史类', 'track') + '</div></div>'
+    + '<div class="setrow"><div class="sk"><b>本机数据</b>'
+    + '<span>志愿表、选科、演示模式等共 ' + (function () {
+      let n = 0; try { n = ['luodian.stage', 'luodian.subjects.v1', 'luodian.basket.v1', 'luodian.hinted', PREF.motion, PREF.track]
+        .filter(k => localStorage.getItem(k) !== null).length; } catch (e) { }
+      return n;
+    })() + ' 项</span></div>'
+    + '<button class="btn ghost danger" data-pref="clear">清除并重新载入</button></div></div>'
+
+    + '<div class="dsec"><h3>数据</h3>'
+    + '<dl class="kv"><dt>数据版本</dt><dd class="mono">' + esc(D.meta.v || '—') + '</dd>'
+    + '<dt>生成时间</dt><dd class="mono">' + esc(gen) + '</dd>'
+    + '<dt>覆盖范围</dt><dd>' + nf(D.meta.counts.schools) + ' 所院校 · '
+    + nf(D.meta.counts.groups) + ' 个专业组 · ' + nf(D.meta.counts.offerings) + ' 条招生专业</dd></dl>'
+    + '<div class="explain" style="margin-top:10px">数据来自四川省教育考试院招生考试报、'
+    + '教育部阳光高考信息公开平台、各校官方招生章程，以及 2022–2025 年录取数据。'
+    + '<b>本站提供的是往年位置的对照，不预测录取概率</b>；'
+    + '正式填报请以当年招生计划、学校招生章程为准。</div></div>'
 
     + '<div class="dsec"><h3>有问题、有意见，直接找我</h3>'
     + '<div class="explain" style="margin-top:0">数据错漏、哪里看不懂、想要什么功能，都可以说。'
@@ -1663,19 +1767,19 @@ function openAbout() {
     + '<div class="about-card">'
     + '<div class="about-row"><span class="k">开发者</span><b>' + esc(ABOUT.who) + '</b></div>'
     + '<div class="about-row"><span class="k">QQ</span>'
-    + '<button class="qq" data-copy-qq>' + ABOUT.qq + '<i>点击复制</i></button></div></div>'
-    + '<a class="about-link" href="https://github.com/yusheng266186-beep/beichen" target="_blank" rel="noopener">'
-    + '另一个项目：北辰 · 高一选科探索 ↗</a></div>'
+    + '<button class="qq" data-copy-qq>' + ABOUT.qq + '<i>点击复制</i></button></div></div></div>'
 
-    + '<div class="dsec"><div class="explain" style="margin-top:0">'
-    + '数据来自四川省教育考试院招生考试报、教育部阳光高考信息公开平台、各校官方招生章程，'
-    + '以及 2022–2025 年录取数据。<b>本站提供的是往年位置的对照，不预测录取概率</b>；'
-    + '正式填报请以当年招生计划、学校招生章程为准。</div>'
-    + '<div class="about-fin">2026 · 四川 · 落点<br>为' + esc(ABOUT.klass) + '而做</div></div>';
+    + '<div class="dsec"><h3>相关</h3><div class="about-links">'
+    + '<a href="https://yusheng266186-beep.github.io/beichen/" target="_blank" rel="noopener">'
+    + '<b>北辰</b><span>高一选科探索 · 直接打开就用 ↗</span></a>'
+    + '<a href="https://yusheng266186-beep.github.io/sichuan-gaokao-2026/v2/" target="_blank" rel="noopener">'
+    + '<b>第二代 · 落点</b><span>表格化的查询工作台 ↗</span></a>'
+    + '<a href="https://github.com/yusheng266186-beep/sichuan-gaokao-2026" target="_blank" rel="noopener">'
+    + '<b>项目记录</b><span>源码与更新日志 ↗</span></a>'
+    + '</div><div class="about-fin">2026 · 四川 · 落点<br>为' + esc(ABOUT.klass) + '而做</div></div>';
   openDrawer('#drawer');
 }
 
-/* 点任意「落点」准星 logo 也能打开 —— 这就是彩蛋本身 */
 function bindAboutEgg() {
   $$('.logo').forEach(el => {
     if (el.dataset.eggBound) return;
@@ -1696,7 +1800,7 @@ function bindAboutEgg() {
 
 <!-- ===================== 载入 ===================== -->
 <div class="boot" id="boot"><div class="boot-in">
-  <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+  <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="53.2 9.6" transform="rotate(-62.5 14 14)"/><circle cx="14" cy="14" r="2.9" fill="currentColor"/></svg>
   <div class="t">落点</div>
   <div class="s" id="boot-s">正在准备<span class="dots"><i></i><i></i><i></i></span></div>
   <div class="bootbar"><i id="boot-b"></i></div>
@@ -1707,7 +1811,7 @@ function bindAboutEgg() {
 <div class="shell">
 
   <div class="brandcell">
-    <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="54.3 11" transform="rotate(-60 14 14)"/><path d="M14 1.3v3.6M14 23.1v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".38"/><circle cx="14" cy="14" r="3" fill="currentColor"/></svg>
+    <svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><circle class="ring" cx="14" cy="14" r="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="53.2 9.6" transform="rotate(-62.5 14 14)"/><circle cx="14" cy="14" r="2.9" fill="currentColor"/></svg>
     <div><div class="brand-name">落点</div><div class="brand-sub">SC · 2026</div></div>
   </div>
 
@@ -1751,7 +1855,7 @@ function bindAboutEgg() {
     <div class="rail-label">关于</div>
     <button class="navitem" data-about><i class="mk"></i>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8.2v.01"/><path d="M10.6 11.6h1.4v4.6"/></svg>
-      关于<span class="tail">?</span></button>
+      关于</button>
     <div class="rail-foot" id="rail-foot"></div>
   </nav>
 
