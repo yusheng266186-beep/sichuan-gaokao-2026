@@ -168,7 +168,7 @@ svg{display:block}
   .navitem .mk{left:50%;top:0;width:0;height:2px;transform:translateX(-50%);border-radius:0 0 2px 2px;
     transition:width var(--t) var(--spring)}
   .navitem[aria-current="page"] .mk{height:2px;width:18px}
-  .main{padding:14px 14px 96px}
+  main.main{padding:14px 14px 96px}
   .brandcell{border-right:0}
 }
 
@@ -1489,7 +1489,7 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
     height:40px;font-size:12.5px;padding:0 14px;border-radius:20px}
   .floatbar .stage-toggle svg{width:15px;height:15px}
   /* 正文留出底部空间，最后一张卡片不被悬浮条压住 */
-  body .main{padding-bottom:170px}
+  main.main{padding-bottom:170px}
 
   /* ---- 窄屏等同触摸 ----
      原来点击区放大挂在 body.touch 上，依赖 JS 探测触摸能力。
@@ -1637,7 +1637,49 @@ body.touch .about-links a,body.stage .about-links a{padding:15px 17px}
 @media(max-width:900px){
   body .segbtn{height:44px;padding:0 15px;font-size:13.5px}
   body .setrow{padding:15px 0}
-}</style>
+}/* ==========================================================================
+   本轮细节修正
+   ========================================================================== */
+
+/* 1) .main 类名冲突 —— 这是「调档线卡片留白过大」的真因
+   .main 同时用在页面容器 <main class="main"> 和主调档线卡片 <div class="ln-card main"> 上。
+   于是 `.main{padding:14px 14px 96px}` 和后来给悬浮条让位的
+   `body .main{padding-bottom:170px}` 都被打到了那张卡片上，
+   卡片底部凭空多出 170px 空白（改之前也有 96px）。
+   选择器收紧成 main.main 只命中页面容器，且只在窄屏生效 ——
+   桌面端不需要给悬浮条让位。 */
+
+/* 2) 院校页筛选工具栏
+   桌面端是 .controls 一行放：芯片 + 标签说明 + 排序下拉。
+   手机窄屏芯片被挤到只剩 126px 宽，于是每个芯片独占一行，看着杂乱。
+   窄屏改成：芯片整行 + 三列等宽网格；标签说明与排序另起一行分居两侧。 */
+@media(max-width:900px){
+  main.main{padding-bottom:170px}
+  body .controls{flex-wrap:wrap;gap:8px 10px}
+  body .controls #stagchips{flex:1 1 100%;order:2;display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  body .controls #stagchips .chip{justify-content:center;min-width:0;padding:0 6px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body .taghelp{order:1}
+  body .controls .selectwrap{order:1;margin-left:auto}
+}
+
+/* 3) 底部导航
+   加了「关于」之后变成 6 项，每项只剩 60px 宽，
+   .navitem 的 padding:12px 把内容压到 36px，「志愿表」三个字放不下就换了行。
+   收紧内边距并禁止换行。 */
+@media(max-width:900px){
+  body .navitem{padding:9px 3px;font-size:12.5px;white-space:nowrap;line-height:1.3}
+  body .navitem .tail{font-size:12px}
+  body .rail{gap:0}
+}
+@media(max-width:380px){
+  body .navitem{font-size:12px;padding:9px 2px}
+}
+/* #stagchips 原来带内联 style="flex:1" —— 内联样式优先级高于样式表，
+   窄屏想改它的布局就改不动（芯片被挤到 126px，每个独占一行）。
+   把它挪进样式表，三层尺寸才有得谈。 */
+.controls > .chips{flex:1}</style>
 <script>
 /* ==========================================================================
    关于落点（彩蛋）
@@ -1654,7 +1696,7 @@ body.touch .about-links a,body.stage .about-links a{padding:15px 17px}
    ========================================================================== */
 const ABOUT = { who: '予笙', qq: '2661864056', klass: '荣县一中高三四班' };
 const PREF = {
-  motion: 'luodian.motion',   // system | full | reduce
+  motion: 'luodian.motion',   // full | system | reduce（默认 full：动效默认全开）
   track: 'luodian.track'      // 0 物理类 / 1 历史类
 };
 function prefGet(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
@@ -1682,7 +1724,8 @@ function copyQQ(e) {
 
 /* ---- 设置项 ---- */
 function applyMotion() {
-  const v = prefGet(PREF.motion, 'system');
+  /* 默认「全部开启」—— 上白板和手机上看，动效是这个站点的体验之一 */
+  const v = prefGet(PREF.motion, 'full');
   /* 复用已有的 body.noanim —— 那套「关掉全部动画并强制可见」的规则很全，
      另起一个类名等于把它再抄一遍，还容易漏掉某个元素、让内容停在 opacity:0。
      ?noanim=1 是给截图和排错用的，优先级最高，不能被偏好覆盖掉。 */
@@ -1717,7 +1760,7 @@ function clearLocal() {
 }
 
 function openAbout() {
-  const mv = prefGet(PREF.motion, 'system');
+  const mv = prefGet(PREF.motion, 'full');
   const seg = (cur, val, label, fn) =>
     `<button class="segbtn${cur === val ? ' on' : ''}" data-pref="${fn}" data-val="${val}">${label}</button>`;
   const gen = D.meta.gen ? String(D.meta.gen).replace('T', ' ').slice(0, 16) : '—';
@@ -1774,8 +1817,6 @@ function openAbout() {
     + '<b>北辰</b><span>高一选科探索 · 直接打开就用 ↗</span></a>'
     + '<a href="https://yusheng266186-beep.github.io/sichuan-gaokao-2026/v2/" target="_blank" rel="noopener">'
     + '<b>第二代 · 落点</b><span>表格化的查询工作台 ↗</span></a>'
-    + '<a href="https://github.com/yusheng266186-beep/sichuan-gaokao-2026" target="_blank" rel="noopener">'
-    + '<b>项目记录</b><span>源码与更新日志 ↗</span></a>'
     + '</div><div class="about-fin">2026 · 四川 · 落点<br>为' + esc(ABOUT.klass) + '而做</div></div>';
   openDrawer('#drawer');
 }
@@ -2015,7 +2056,7 @@ function bindAboutEgg() {
         </div>
       </div>
       <div class="controls">
-        <div class="chips" id="stagchips" style="flex:1"></div>
+        <div class="chips" id="stagchips"></div>
         <button class="taghelp" id="stag-help" title="985 / 211 / 保研资格…这些标签分别是什么意思">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.3a2.9 2.9 0 1 1 3.6 2.8c-.5.2-.8.7-.8 1.2v.6"/><path d="M12 17.2h.01"/></svg>
           标签说明</button>
