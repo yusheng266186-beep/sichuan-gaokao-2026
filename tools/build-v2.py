@@ -20,14 +20,17 @@ for row in offerings:
     links[row[0]].add((row[2], row[4], row[5]))
 for row in groups:
     assert 0 <= row[0] < len(schools)
-fields = 'code n prov reg city own typ lvl tag charter rk pg'.split()
+# detailStatus / detailSourceCount / detailUpdatedAt 很小，放进目录，
+# 这样不用等详情正文（5.7 MB，懒加载）就能显示「官方来源 3 项 · 已关联… · 2026-09-20」
+fields = ('code n prov reg city own typ lvl tag charter rk pg '
+          'detailStatus detailSourceCount detailUpdatedAt').split()
 catalog = {
     'version': '2.0.0', 'generated': meta['gen'], 'sourceVersion': meta['v'],
     'hashes': {n: hashlib.sha256((ROOT/'data'/(n+'.js')).read_bytes()).hexdigest()
-               # schools 也纳入：院校详细档案（每校 900+ 字）不进 catalog.json ——
+               # details 也纳入：院校档案正文（每校 900+ 字）不进 catalog.json ——
                # 那会让首屏从 2.6 MB 涨到 4.8 MB，手机上不可接受。
-               # 改成打开院校详情时按需加载 data/schools.js，用这个哈希校验一致性。
-               for n in ('meta', 'offerings', 'schools')},
+               # 改成打开院校详情时按需加载 data/details.js，用这个哈希校验一致性。
+               for n in ('meta', 'offerings', 'details')},
     'counts': meta['counts'],
     'schools': [{k: s.get(k) for k in fields} for s in schools],
     'groups': groups, 'links': [sorted(rows) for rows in links],

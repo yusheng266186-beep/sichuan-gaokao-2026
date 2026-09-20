@@ -1600,13 +1600,41 @@ const DETAIL_STATUS_CN = {
   OFFICIAL_REGISTRY_ONLY: '仅有教育部名录',
 };
 
+/* 详情正文的懒加载。null = 还没加载（区别于「加载了但这所学校没有」）。 */
+let detailLoading = null;
+function ensureDetails() {
+  if (window.LD && window.LD.details) return Promise.resolve(window.LD.details);
+  if (detailLoading) return detailLoading;
+  detailLoading = new Promise((resolve, reject) => {
+    const el = document.createElement('script');
+    el.src = 'data/details.js';
+    el.onload = () => { window.LD.details = window.LD.details || {}; resolve(window.LD.details); };
+    el.onerror = () => { detailLoading = null; reject(new Error('详情加载失败')); };
+    document.head.appendChild(el);
+  });
+  return detailLoading;
+}
+function detailTextOf(s) {
+  const m = (window.LD && window.LD.details) || null;
+  if (!m) return null;
+  return m[String(s.code)] || '';
+}
+
 function detailBlock(s) {
-  const secs = detailSections(s.detail);
+  const txt = detailTextOf(s);
+  const head = '<h3>院校详细档案<span class="lv-tag">官方来源索引</span></h3>';
+  if (txt === null) {
+    /* 骨架带 id，加载完成后整块替换掉 —— 只换这一节，不重渲染整个抽屉，
+       否则用户刚滚到的位置会被冲回顶部。 */
+    return `<div class="dsec" id="d-archive">${head}
+      <div class="ax-loading">正在读取院校档案…</div></div>`;
+  }
+  const secs = detailSections(txt);
   if (!secs.length) return '';
   const st = DETAIL_STATUS_CN[s.detailStatus] || '';
   const n = s.detailSourceCount || 0;
   const up = (s.detailUpdatedAt || '').slice(0, 10);
-  return `<div class="dsec"><h3>院校详细档案<span class="lv-tag">官方来源索引</span></h3>
+  return `<div class="dsec" id="d-archive">${head}
     <div class="ax-meta">
       ${n ? `<span class="ax-pill">官方来源 ${n} 项</span>` : ''}
       ${st ? `<span class="ax-pill">${esc(st)}</span>` : ''}
@@ -1691,9 +1719,28 @@ function openSchool(si) {
     </div>
     ${s.charter ? `<a class="src" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--navy-3);margin-top:12px" href="${esc(s.charter)}" target="_blank" rel="noopener">招生章程入口</a>` : ''}
     </div>` + blocks;
+  lastSchoolOpened = si;
   openDrawer('#drawer');
   drawerGo('openSchool', si);
+  /* 详情正文在 details.js 里，首屏不加载（5.7 MB，会让启动从 13 MB 涨到 19 MB）。
+     打开院校抽屉时才注入；用 <script> 注入而不是 fetch —— 第一版要能在
+     file:// 下直接用，fetch 会被 CORS 拦掉。 */
+  if (detailTextOf(s) === null) {
+    ensureDetails().then(() => {
+      /* 加载期间用户可能已经关掉抽屉、或翻到别的学校 */
+      if (!$('#drawer').classList.contains('on')) return;
+      if (lastSchoolOpened !== si) return;
+      const box = $('#d-archive');
+      if (box) box.outerHTML = detailBlock(s);
+    }).catch(() => {
+      const box = $('#d-archive');
+      if (box) box.innerHTML = '<h3>院校详细档案</h3>' +
+        '<div class="ax-loading">档案加载失败，检查网络后重开这一页。</div>';
+    });
+  }
 }
+/* 最近一次打开的院校：懒加载回来时用来判断「还是不是这一页」 */
+let lastSchoolOpened = -1;
 
 function openMajor(oi) {
   const o = D.offerings[oi], g = D.groups[o[O_.GROUP]], s = D.gSchool[o[O_.GROUP]];

@@ -345,17 +345,20 @@ let schoolDetailPromise=null;
 function ensureSchoolDetails(){
   if(D.schoolDetails)return Promise.resolve(D.schoolDetails);
   if(schoolDetailPromise)return schoolDetailPromise;
-  schoolDetailPromise=loadTextData('schools').then(list=>{
-    const m=new Map();
-    (list||[]).forEach(s=>{if(s&&s.code)m.set(String(s.code),s);});
-    D.schoolDetails=m;return m;
+  /* 只取 details.js（5.7 MB 的正文），不再取整份 schools.js ——
+     状态、来源数、更新时间这些本来就在 catalog 里，
+     没必要为了看一所学校把 8 MB 的全量记录拉下来。 */
+  schoolDetailPromise=loadTextData('details').then(map=>{
+    D.schoolDetails=map||{};return D.schoolDetails;
   }).catch(e=>{schoolDetailPromise=null;throw e;});
   return schoolDetailPromise;
 }
-/* catalog 里的 school 只有 12 个字段；详情在完整记录上 */
+/* 正文按 code 查；catalog 里只有状态类字段，两者拼起来才是完整档案信息 */
 function schoolDetailOf(s){
-  const full=D.schoolDetails&&D.schoolDetails.get(String(s.code));
-  return full||s;
+  const base={detailStatus:s.detailStatus,detailSourceCount:s.detailSourceCount,detailUpdatedAt:s.detailUpdatedAt};
+  const m=D.schoolDetails;
+  if(!m)return Object.assign({detail:''},base);
+  return Object.assign({detail:m[String(s.code)]||''},base);
 }
 function detailInnerHTML(s){
   const full=schoolDetailOf(s);
