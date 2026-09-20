@@ -1624,10 +1624,15 @@ function detailBlock(s) {
   const txt = detailTextOf(s);
   const head = '<h3>院校详细档案<span class="lv-tag">官方来源索引</span></h3>';
   if (txt === null) {
-    /* 骨架带 id，加载完成后整块替换掉 —— 只换这一节，不重渲染整个抽屉，
-       否则用户刚滚到的位置会被冲回顶部。 */
+    /* 还没加载完：先把短简介顶上来，别留空白。
+       这三行本来就是档案「院校概览 / 办学特色与标签」的摘要，加载完会被替换掉，
+       所以最终态不会重复。带 id 是为了让加载完只换这一节，
+       不重渲染整个抽屉（否则用户刚滚到的位置会被冲回顶部）。 */
     return `<div class="dsec" id="d-archive">${head}
-      <div class="ax-loading">正在读取院校档案…</div></div>`;
+      ${s.desc ? `<div class="desc-box">${esc(s.desc)}</div>` : ''}
+      ${s.focus ? `<div class="explain" style="margin-top:10px">专业覆盖与方向：${esc(s.focus)}</div>` : ''}
+      ${s.ev ? `<div class="explain" style="margin-top:6px">学科 / 专业证据：${esc(s.ev)}</div>` : ''}
+      <div class="ax-loading" style="margin-top:12px">正在读取完整档案…</div></div>`;
   }
   const secs = detailSections(txt);
   if (!secs.length) return '';
@@ -1697,9 +1702,10 @@ function openSchool(si) {
     (lineCards ? `<div class="dsec"><h3>调档线（投档线）</h3><div class="lines3 wide">${lineCards}</div>
       <div class="explain"><b>新高考按「院校专业组」投档</b>，一所学校会有多条调档线，每个专业组一条。
       下面是各组的线分布区间，点开具体组看它自己的线。</div></div>` : '') +
-    (s.desc ? `<div class="dsec"><h3>院校简介</h3><div class="desc-box">${esc(s.desc)}</div>
-      ${s.focus ? `<div class="explain" style="margin-top:10px">专业覆盖与方向：${esc(s.focus)}</div>` : ''}
-      ${s.ev ? `<div class="explain" style="margin-top:6px">学科 / 专业证据：${esc(s.ev)}</div>` : ''}</div>` : '') +
+    /* 原来这里单独有一节「院校简介」（短简介 + 学科方向 + 证据）。
+       详细档案到位后，那三行和档案里的「院校概览」「办学特色与标签」是同一批内容，
+       同一所学校被介绍了两遍。现在短简介降级成档案的「加载中占位」：
+       档案没到时先显示它，到了就被完整版替换 —— 既不重复，也不留空白。 */
     detailBlock(s) +
     `<div class="dsec"><h3>基本信息<span class="lv-tag">院校级</span></h3><dl class="kv">
       <dt>院校代码</dt><dd class="mono">${esc(s.code)}</dd>
@@ -1733,9 +1739,10 @@ function openSchool(si) {
       const box = $('#d-archive');
       if (box) box.outerHTML = detailBlock(s);
     }).catch(() => {
-      const box = $('#d-archive');
-      if (box) box.innerHTML = '<h3>院校详细档案</h3>' +
-        '<div class="ax-loading">档案加载失败，检查网络后重开这一页。</div>';
+      /* 加载失败也别把已经能看的短简介清掉 —— 只把「正在读取」那行换成失败提示 */
+      const box = $('#d-archive .ax-loading');
+      if (box) box.outerHTML = '<div class="ax-loading">完整档案加载失败，检查网络后重开这一页。' +
+        '上面的简介仍可参考。</div>';
     });
   }
 }
