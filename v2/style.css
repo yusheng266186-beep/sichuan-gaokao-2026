@@ -250,3 +250,20 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 .ax-loading::after{content:"";display:inline-block;width:1em;text-align:left;
   animation:axdots 1.4s steps(4,end) infinite}
 @keyframes axdots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+/* ==========================================================================
+   手机端命中区补完（用几何审计量出来的，不是目测）
+   --------------------------------------------------------------------------
+   审计按「高 × 宽」报出这些小于 44px 的点击目标：
+     .browse-tabs button   48 × 28~42   文字标签页太窄
+     .hist-bar             71 × 7       直方图柱（另加坐标代理，见 app.js）
+     select（排序）         30 × 116     太矮
+     .footer-version       21 × 341     太矮
+   ========================================================================== */
+@media(max-width:760px){
+  body .browse-tabs{gap:12px}
+  body .browse-tabs button{min-width:44px;min-height:44px;padding:14px 6px}
+  body .tier-tabs button{min-height:44px;padding:0 12px}
+  body .tier-toolbar select,body select.sortsel,body .tier-toolbar .select,body .sort-wrap select{min-height:44px}
+  body .footer-version{min-height:44px;display:flex;align-items:center;justify-content:center}
+  body .layout-toggle button{min-width:44px;min-height:44px}
+}

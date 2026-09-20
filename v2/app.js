@@ -98,7 +98,13 @@ function copyAboutQQ(btn) {
   function renderDistribution(){
     const scores=distributionRows.map(i=>D.groups[i][G.s25]).filter(v=>v>0);
     if(!scores.length){$('#distribution-chart').innerHTML='<div class="chart-loading">当前范围暂无有效的 2025 专业组线。</div>';$('#distribution-description').textContent='可调整筛选范围后查看';$('#distribution-readout').textContent='缺失数据不会被当作 0 分。';return;}
-    const low=Math.min(...scores),high=Math.max(...scores),step=Math.max(5,Math.ceil((high-low)/32/5)*5),min=Math.floor(low/step)*step,max=(Math.floor(high/step)+1)*step;
+    const low=Math.min(...scores),high=Math.max(...scores);
+    /* 分箱数按视口宽度定：固定 32 箱时，300px 宽的绘图区里每根柱子只有 7px，
+       手指（约 34px）根本点不准 —— 而柱子的作用就是「点一下按分数段筛」。
+       窄屏降到约 14 箱，每根 ~22px，能点得中；宽屏保留 32 箱的细节。
+       步长仍取 5 的倍数，读起来是整数分数段。 */
+    const targetBins=window.innerWidth<700?14:32;
+    const step=Math.max(5,Math.ceil((high-low)/targetBins/5)*5),min=Math.floor(low/step)*step,max=(Math.floor(high/step)+1)*step;
     const bins=Array.from({length:Math.round((max-min)/step)},()=>0);scores.forEach(v=>bins[Math.min(bins.length-1,Math.floor((v-min)/step))]++);
     const peak=Math.max(...bins),eq=pos.equivalent,at=eq&&!eq.edge?(eq.score-min)/(max-min)*100:null;
     const marker=at!==null&&at>=0&&at<=100?`<div class="chart-marker" style="left:${at}%"><span>${eq.score}<small>等效分</small></span></div>`:'';
@@ -106,6 +112,20 @@ function copyAboutQQ(btn) {
     $('#distribution-chart').innerHTML=`<div class="chart-plot"><span class="chart-max">${nf(peak)} 组</span><div class="hist-bars" style="--bins:${bins.length}">${bins.map((count,n)=>{const from=min+n*step,to=from+step,selected=Number(state.filters.scoreFrom)===from&&state.filters.scoreFrom!=='';return `<button class="hist-bar ${selected?'selected':''}" style="--height:${count?Math.max(2,count/peak*100):0}%" data-score-from="${from}" data-score-to="${to}" data-bin-count="${count}" aria-label="筛选2025组线${from}至${to-1}分，${count}个专业组" aria-pressed="${selected}" title="${from}–${to-1}分 · ${count}组" ${!count?'disabled':''}><span></span></button>`;}).join('')}</div>${marker}</div><div class="chart-axis">${Array.from({length:5},(_,n)=>`<span>${Math.round(min+(max-min)*n/4)}</span>`).join('')}</div>`;
     $('#distribution-readout').textContent=(at!==null&&(at<0||at>100)?`你的 2025 等效分 ${eq.score} 分在当前分布范围之外。 `:'')+`点选柱线，筛选该分数区间；${nf(distributionRows.length-scores.length)} 组暂无往年线。`;
   }
+  /* 直方图有几十个分箱，341px 宽的图上每根柱子只有 7px —— 鼠标能点，手指点不准。
+     给绘图区加一层代理：按 x 坐标算出最近的柱子再触发它，命中区从 7px 变成整块图。
+     直接点中柱子时直接返回，交给原来的委托处理器，避免重复触发。 */
+  $('#distribution-chart').addEventListener('click',e=>{
+    if(e.target.closest('.hist-bar'))return;
+    const plot=e.target.closest('.chart-plot');if(!plot)return;
+    const bars=$('#distribution-chart').querySelectorAll('.hist-bar');
+    if(!bars.length)return;
+    const r=plot.getBoundingClientRect();
+    if(e.clientX<r.left||e.clientX>r.right)return;
+    const idx=Math.min(bars.length-1,Math.max(0,Math.floor((e.clientX-r.left)/r.width*bars.length)));
+    const bar=bars[idx];
+    if(bar&&!bar.disabled)bar.click();
+  });
   function aggregate(){
     if(state.view==='groups')return matched;
     if(state.view==='schools'){const map=new Map();matched.forEach(i=>{const s=D.groups[i][0];if(!map.has(s))map.set(s,{school:s,groups:[]});map.get(s).groups.push(i);});return [...map.values()];}
