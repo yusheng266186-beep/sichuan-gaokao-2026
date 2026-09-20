@@ -216,3 +216,37 @@ dialog.closing::backdrop{animation:dialog-out .17s var(--ease) forwards}
 @media(max-width:760px){
   input,select,textarea{min-width:0;max-width:100%}
 }
+
+/* ==========================================================================
+   院校详细档案（按【章节】折叠）
+   数据侧每校一份 900+ 字的档案，分 8 个固定章节。
+   ========================================================================== */
+.ax-meta{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 13px}
+.ax-pill{font-size:12px;padding:3px 9px;border-radius:5px;background:var(--soft);
+  color:var(--dim);border:1px solid var(--line)}
+.ax-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);
+  border-radius:7px;overflow:hidden;background:var(--line)}
+.ax{background:var(--paper)}
+.ax>summary{cursor:pointer;padding:12px 16px;font-size:13px;font-weight:500;
+  display:flex;align-items:center;gap:9px;list-style:none;
+  transition:background var(--t) var(--ease)}
+.ax>summary::-webkit-details-marker{display:none}
+.ax>summary::before{content:"";width:5px;height:5px;border-right:1.6px solid var(--dim);
+  border-bottom:1.6px solid var(--dim);transform:rotate(-45deg);flex-shrink:0;
+  margin-left:2px;transition:transform var(--t) var(--ease)}
+.ax[open]>summary::before{transform:rotate(45deg)}
+.ax>summary:hover{background:var(--soft)}
+.ax-b{padding:0 16px 16px 29px;font-size:13px;line-height:1.95;color:var(--dim);
+  white-space:pre-wrap;word-break:break-word}
+.stage .ax>summary{font-size:15px;padding:14px 18px}
+.stage .ax-b{font-size:14px;line-height:2}
+@media(max-width:760px){
+  .ax>summary{padding:14px 14px;min-height:44px}
+  .ax-b{padding:0 14px 14px 27px}
+}
+/* 院校档案加载中的骨架 */
+.ax-loading{padding:16px;font-size:13px;color:var(--faint);
+  background:var(--soft);border:1px solid var(--line);border-radius:7px}
+.ax-loading::after{content:"";display:inline-block;width:1em;text-align:left;
+  animation:axdots 1.4s steps(4,end) infinite}
+@keyframes axdots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}

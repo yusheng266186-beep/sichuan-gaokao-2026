@@ -1679,7 +1679,30 @@ body.touch .about-links a,body.stage .about-links a{padding:15px 17px}
 /* #stagchips 原来带内联 style="flex:1" —— 内联样式优先级高于样式表，
    窄屏想改它的布局就改不动（芯片被挤到 126px，每个独占一行）。
    把它挪进样式表，三层尺寸才有得谈。 */
-.controls > .chips{flex:1}</style>
+.controls > .chips{flex:1}/* ---- 院校详细档案（按【章节】折叠）---- */
+.ax-meta{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 12px}
+.ax-pill{font-size:12px;padding:3px 9px;border-radius:5px;background:var(--surface-3);
+  color:var(--dim);border:1px solid var(--line-2)}
+.ax-list{display:flex;flex-direction:column;gap:1px;border:1px solid var(--line);
+  border-radius:var(--r);overflow:hidden;background:var(--line)}
+.ax{background:var(--surface)}
+.ax>summary{cursor:pointer;padding:12px 15px;font-size:13.5px;font-weight:500;
+  display:flex;align-items:center;gap:8px;list-style:none;
+  transition:background var(--t) var(--ease)}
+.ax>summary::-webkit-details-marker{display:none}
+.ax>summary::before{content:"";width:5px;height:5px;border-right:1.6px solid var(--dim);
+  border-bottom:1.6px solid var(--dim);transform:rotate(-45deg);flex-shrink:0;
+  transition:transform var(--t) var(--ease);margin-left:2px}
+.ax[open]>summary::before{transform:rotate(45deg)}
+.ax>summary:hover{background:var(--surface-2)}
+.ax-b{padding:0 15px 15px 27px;font-size:13px;line-height:1.95;color:var(--dim);
+  white-space:pre-wrap;word-break:break-word}
+body.touch .ax>summary,body.stage .ax>summary{padding:15px 17px;font-size:15px}
+body.touch .ax-b,body.stage .ax-b{font-size:14px;line-height:2}
+@media(max-width:900px){
+  body .ax>summary{padding:14px 14px;min-height:44px}
+  body .ax-b{padding:0 14px 14px 25px}
+}.prov.misc{background:#eef0f3;color:#5c6874}</style>
 <script>
 /* ==========================================================================
    关于落点（彩蛋）

@@ -1447,12 +1447,24 @@ function openGroup(i) {
      南溟库这次更新后官方证据从 213 所涨到 1,639 所，但 33,666 条走的是
      「省级考试院招生计划」，其中 33,328 条来自福建省 —— 对四川考生是跨省代理。
      所以来源必须写清楚，不能含糊成「官方核实」四个字。 */
+/* 学费证据的口径 → 配色。与 export.py 的 FEE_PROV_CN 一一对应；
+   南溟库新增档位时这里必须同步，否则新档会掉进兜底、颜色和含义对不上。
+   测试里有一条断言：每一档都能在这张表里找到。 */
+const FEE_KIND_CLS = {
+  '学校官方': 'self',
+  '教育部阳光高考': 'moe',
+  '省级考试院招生计划': 'other',
+  '其他官方来源': 'misc',
+};
   const feeRows = offs.slice(0, 1).map(oi => {
     const o = D.offerings[oi];
     const verified = o[O_.FSCOPE] && o[O_.FSCOPE] !== 'UNVERIFIED';
     const pub = o[O_.FPUB] >= 0 ? (D.meta.dicts.fpub[o[O_.FPUB]] || '') : '';
     const kind = o[O_.FKIND] >= 0 ? (D.meta.dicts.fkind[o[O_.FKIND]] || '') : '';
-    const kindCls = kind === '省级考试院招生计划' ? 'other' : kind === '学校官方' ? 'self' : 'moe';
+    /* 口径 → 配色。原来写的是三元表达式，只认三种；南溟库这次多出
+       「其他官方来源」一档，会掉进 else 被当成「教育部阳光高考」—— 归错类了。
+       改成查表 + 兜底，并且下面有一条断言保证每档都在表里。 */
+    const kindCls = FEE_KIND_CLS[kind] || 'misc';
     const tmin = g[G_.TMIN], tmax = g[G_.TMAX];
     return `<div class="fee">
       <div class="fr">
@@ -1556,6 +1568,57 @@ function openGroup(i) {
 }
 const siOfGroup = i => D.groups[i][G_.SCHOOL];
 
+/* ==========================================================================
+   院校详细档案
+   --------------------------------------------------------------------------
+   数据侧每校都有一份详细档案（平均 915 字，按【章节】分段，8 个固定章节）。
+   原来页面上只有一句短简介 —— 详情导出来了却没人用。
+
+   渲染成折叠分节而不是一整块文字：研究生培养那节光硕士就列 85 项，
+   不折叠的话一屏全是专业名，反而盖住了真正要看的东西。
+   第一节默认展开（概况），其余收起。
+   ========================================================================== */
+function detailSections(text) {
+  if (!text) return [];
+  const out = [];
+  const re = /【([^】]{1,24})】\s*([\s\S]*?)(?=【[^】]{1,24}】|$)/g;
+  let m;
+  while ((m = re.exec(text))) {
+    const b = m[2].trim();
+    if (b) out.push({ t: m[1].trim(), b: b });
+  }
+  /* 没有【】标记就整段当作一节，不要丢内容 */
+  return out.length ? out : [{ t: '院校档案', b: String(text).trim() }];
+}
+
+/* detailStatus 是数据侧的状态码，翻成学生看得懂的话。
+   不是「已核实」，只是「有哪些官方来源进了索引」—— 措辞必须留有余地。 */
+const DETAIL_STATUS_CN = {
+  OFFICIAL_REGISTRY_AND_CHSI_INDEX: '已关联教育部名录与阳光高考索引',
+  CHSI_INDEX_WITHOUT_MOE_NAME_MATCH: '已关联阳光高考索引（未与教育部名录名称匹配）',
+  OFFICIAL_SOURCE_INDEX_INCOMPLETE: '官方来源索引不完整',
+  OFFICIAL_REGISTRY_ONLY: '仅有教育部名录',
+};
+
+function detailBlock(s) {
+  const secs = detailSections(s.detail);
+  if (!secs.length) return '';
+  const st = DETAIL_STATUS_CN[s.detailStatus] || '';
+  const n = s.detailSourceCount || 0;
+  const up = (s.detailUpdatedAt || '').slice(0, 10);
+  return `<div class="dsec"><h3>院校详细档案<span class="lv-tag">官方来源索引</span></h3>
+    <div class="ax-meta">
+      ${n ? `<span class="ax-pill">官方来源 ${n} 项</span>` : ''}
+      ${st ? `<span class="ax-pill">${esc(st)}</span>` : ''}
+      ${up ? `<span class="ax-pill mono">${esc(up)}</span>` : ''}
+    </div>
+    <div class="ax-list">${secs.map((x, k) => `<details class="ax"${k === 0 ? ' open' : ''}>
+      <summary>${esc(x.t)}</summary><div class="ax-b">${esc(x.b)}</div></details>`).join('')}</div>
+    <div class="explain" style="margin-top:12px">档案由官方来源索引与库内结构化字段编排而成，
+      <b>用于快速了解这所学校</b>；具体招生要求、专业与费用，请以学校招生章程和当年招生计划为准。</div>
+  </div>`;
+}
+
 function openSchool(si) {
   const s = D.schools[si];
   const gs = (D.schoolGroups.get(si) || []).slice();
@@ -1609,6 +1672,7 @@ function openSchool(si) {
     (s.desc ? `<div class="dsec"><h3>院校简介</h3><div class="desc-box">${esc(s.desc)}</div>
       ${s.focus ? `<div class="explain" style="margin-top:10px">专业覆盖与方向：${esc(s.focus)}</div>` : ''}
       ${s.ev ? `<div class="explain" style="margin-top:6px">学科 / 专业证据：${esc(s.ev)}</div>` : ''}</div>` : '') +
+    detailBlock(s) +
     `<div class="dsec"><h3>基本信息<span class="lv-tag">院校级</span></h3><dl class="kv">
       <dt>院校代码</dt><dd class="mono">${esc(s.code)}</dd>
       <dt>所在</dt><dd>${esc(s.prov)} ${esc(s.city)}${s.tier ? ' · ' + esc(s.tier) : ''}</dd>

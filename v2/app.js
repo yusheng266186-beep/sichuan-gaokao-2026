@@ -323,11 +323,69 @@ function dialogBack(skipHistory) {
     $('#detail-content').innerHTML=`<div class="detail-head"><div class="tag-row">${(s.tag||[]).slice(0,5).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub"><span>${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)}</span><span>院校代码 ${esc(s.code)}</span></div><div class="detail-sub"><b>${esc(groupLabel(g))}</b><span>${trackName(g[1])} · ${esc(g[G.batch])} · ${esc(g[G.type])}</span></div><div class="detail-actions"><button class="button primary" data-save="${i}" aria-pressed="${saved}">${icon.heart}${saved?'已加入备选':'加入备选'}</button><button class="button" data-compare="${i}" aria-pressed="${state.compare.includes(i)}">${icon.compare}加入对比</button>${url?`<a class="button" href="${esc(url)}" target="_blank" rel="noopener">招生章程 ↗</a>`:''}</div></div><section class="detail-section"><h3>你与这个组的距离 ${badge(i)}</h3>${positionComparison(i)}</section><section class="detail-section"><h3>先看清这些条件</h3><div class="detail-stats"><div class="detail-stat"><span>再选科目要求</span><strong style="font-size:19px">${esc(g[G.req]||'未提供')}</strong><small>${status==='ok'?'符合已知选科要求':status==='mismatch'?'与你的选科不匹配':status==='unset'?'设置两门再选科目后核验':'要求未提供，请核对章程'}</small></div><div class="detail-stat"><span>2026 招生计划</span><strong>${valid(g[G.plan])}</strong><small>人 · 本专业组合计</small></div><div class="detail-stat"><span>招生考试报学费</span><strong style="font-size:17px">${g[G.feeMin]>0?nf(g[G.feeMin])+(g[G.feeMax]>g[G.feeMin]?'–'+nf(g[G.feeMax]):''):'—'}</strong><small>元 / 年 · 组内专业区间</small></div></div>${g[G.type]!=='普通类'||g[G.batch]!=='本科批B段'&&g[G.batch]!=='高职(专科)批'?'<p class="note-box warn" style="margin-top:14px">这个组涉及特殊类型或批次，分数和选科匹配不等于具备报考资格。请另外核对资格、体检和投档要求。</p>':''}${change?`<p class="fine-print">${esc(change)}</p>`:''}</section><section class="detail-section"><h3>本组历年调档线 <span>${g[G.r25]>0?(g[G.source]===0?'源表标记：官方值':'源表推导值'):'暂无2025线'}</span></h3>${historyTable(g)}<p class="fine-print">2024 及以前为旧文理口径，不参与本页冲稳保分档。组内专业和招生计划可能跨年调整。</p></section><section class="detail-section"><h3>组内专业 <span>${D.links[i].length} 个专业名称组合</span></h3><p class="note-box">进组之后才分专业。热门专业的录取要求可能高于组线，展开每个专业查看它自己的分数、学费与评价字段。</p><div id="professional-content" style="margin-top:14px"><div class="loading-inline">正在读取专业明细；首次打开需要多一点时间…</div></div></section><section class="detail-section"><button class="button" data-school="${g[0]}">看看这所学校的其他专业组 ↗</button></section>`;
     openDialog('detail-dialog');const token=++detailToken;fillProfessional(i,token);dialogGo('openGroup',i);
   }
-  function openSchool(si){
+/* 院校详细档案：数据侧每校一份（平均 915 字，按【章节】分段，固定 8 节）。
+   渲染成折叠分节而不是一整块 —— 「研究生培养与学科列表」光硕士就 85 项，
+   不折叠会把真正要看的专业组列表顶到几屏之外。第一节默认展开。 */
+function detailSections(text){
+  if(!text)return [];
+  const out=[];const re=/【([^】]{1,24})】\s*([\s\S]*?)(?=【[^】]{1,24}】|$)/g;let m;
+  while((m=re.exec(text))){const b=m[2].trim();if(b)out.push({t:m[1].trim(),b});}
+  return out.length?out:[{t:'院校档案',b:String(text).trim()}];
+}
+const DETAIL_STATUS_CN={
+  OFFICIAL_REGISTRY_AND_CHSI_INDEX:'已关联教育部名录与阳光高考索引',
+  CHSI_INDEX_WITHOUT_MOE_NAME_MATCH:'已关联阳光高考索引（未与教育部名录名称匹配）',
+  OFFICIAL_SOURCE_INDEX_INCOMPLETE:'官方来源索引不完整',
+  OFFICIAL_REGISTRY_ONLY:'仅有教育部名录',
+};
+/* 院校详细档案不进 catalog.json —— 每校 900+ 字，加进去首屏会从 2.6 MB 涨到 4.8 MB，
+   手机上不可接受。改成打开院校详情时按需取 data/schools.js，
+   用 catalog 里的哈希校验一致性（loadTextData 自带 SHA-256 比对）。 */
+let schoolDetailPromise=null;
+function ensureSchoolDetails(){
+  if(D.schoolDetails)return Promise.resolve(D.schoolDetails);
+  if(schoolDetailPromise)return schoolDetailPromise;
+  schoolDetailPromise=loadTextData('schools').then(list=>{
+    const m=new Map();
+    (list||[]).forEach(s=>{if(s&&s.code)m.set(String(s.code),s);});
+    D.schoolDetails=m;return m;
+  }).catch(e=>{schoolDetailPromise=null;throw e;});
+  return schoolDetailPromise;
+}
+/* catalog 里的 school 只有 12 个字段；详情在完整记录上 */
+function schoolDetailOf(s){
+  const full=D.schoolDetails&&D.schoolDetails.get(String(s.code));
+  return full||s;
+}
+function detailInnerHTML(s){
+  const full=schoolDetailOf(s);
+  if(!D.schoolDetails)return '<div class="ax-loading">正在读取院校档案…</div>';
+  const secs=detailSections(full.detail);
+  if(!secs.length)return '<p class="fine-print" style="margin:0">这所学校暂无详细档案。</p>';
+  const st=DETAIL_STATUS_CN[full.detailStatus]||'';
+  const n=full.detailSourceCount||0;
+  const up=(full.detailUpdatedAt||'').slice(0,10);
+  return `<div class="ax-meta">${n?`<span class="ax-pill">官方来源 ${n} 项</span>`:''}${st?`<span class="ax-pill">${esc(st)}</span>`:''}${up?`<span class="ax-pill">${esc(up)}</span>`:''}</div>
+    <div class="ax-list">${secs.map((x,k)=>`<details class="ax"${k===0?' open':''}><summary>${esc(x.t)}</summary><div class="ax-b">${esc(x.b)}</div></details>`).join('')}</div>
+    <p class="fine-print">档案由官方来源索引与库内结构化字段编排而成，用于快速了解这所学校；具体招生要求、专业与费用请以学校招生章程和当年招生计划为准。</p>`;
+}
+function detailSectionHTML(s){
+  if(!s.detail&&!D.schoolDetails)return `<section class="detail-section" id="detail-archive"><h3>院校详细档案 <span>官方来源索引</span></h3>${detailInnerHTML(s)}</section>`;
+  return `<section class="detail-section" id="detail-archive"><h3>院校详细档案 <span>官方来源索引</span></h3>${detailInnerHTML(s)}</section>`;
+}  function openSchool(si){
     const s=D.schools[si];if(!s)return;detailToken++;openedDetail={type:'school',i:si};const gs=D.schoolGroups[si].filter(i=>D.groups[i][1]===state.profile.track),lines=gs.map(i=>D.groups[i][G.s25]).filter(n=>n>0),url=safeURL(s.charter);
     $('#detail-kicker').textContent='院校详情';
-    $('#detail-content').innerHTML=`<div class="detail-head"><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)} · ${esc(s.typ)} · ${esc(s.lvl)}</div><div class="tag-row">${(s.tag||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="detail-actions">${url?`<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener">查看招生章程 ↗</a>`:''}<button class="button" data-action="help">了解标签含义 ↗</button></div></div><section class="detail-section"><h3>在四川的招生轮廓 <span>${trackName(state.profile.track)} · 本页展示全部批次</span></h3><div class="detail-stats"><div class="detail-stat"><span>专业组数量</span><strong>${gs.length}</strong><small>当前科类，全部批次</small></div><div class="detail-stat"><span>2025 组线范围</span><strong style="font-size:20px">${lines.length?Math.min(...lines)+'–'+Math.max(...lines):'—'}</strong><small>分 · 不等于一条院校线</small></div><div class="detail-stat"><span>院校代码</span><strong>${esc(s.code)}</strong><small>${esc(s.lvl)}招生记录</small></div></div><p class="fine-print">专业组线分别对应不同批次、类型及专业组合，不能把最低一条线视为整所学校所有专业的门槛。</p></section><section class="detail-section"><h3>专业组，一组一组看</h3><div class="detail-groups">${gs.length?gs.map(i=>{const g=D.groups[i];return `<button class="detail-group-row" data-group="${i}"><span>${esc(groupLabel(g))} · ${esc(g[G.req]||'选科待补充')}<small>${esc(g[G.batch])}<br>${esc(majorNames(i,3))}</small></span><span>${badge(i)}<small>2025 ${valid(g[G.s25])} 分 ↗</small></span></button>`;}).join(''):'<p>本校在当前科类暂无收录记录。可以切换科类后再看看。</p>'}</div></section><section class="detail-section"><h3>标签的含义</h3>${(s.tag||[]).filter(t=>D.tags[t]).map(t=>`<details><summary>${esc(t)} · ${esc(D.tags[t].title)}</summary><p>${esc(D.tags[t].desc)}</p><p>${esc(D.tags[t].caution)}</p>${safeURL(D.tags[t].source)?`<a class="source-link" href="${esc(safeURL(D.tags[t].source))}" target="_blank" rel="noopener">查看标签来源 ↗</a>`:''}</details>`).join('')||'<p>暂无可展开的标签说明。</p>'}</section>`;
+    $('#detail-content').innerHTML=`<div class="detail-head"><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)} · ${esc(s.typ)} · ${esc(s.lvl)}</div><div class="tag-row">${(s.tag||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div><div class="detail-actions">${url?`<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener">查看招生章程 ↗</a>`:''}<button class="button" data-action="help">了解标签含义 ↗</button></div></div><section class="detail-section"><h3>在四川的招生轮廓 <span>${trackName(state.profile.track)} · 本页展示全部批次</span></h3><div class="detail-stats"><div class="detail-stat"><span>专业组数量</span><strong>${gs.length}</strong><small>当前科类，全部批次</small></div><div class="detail-stat"><span>2025 组线范围</span><strong style="font-size:20px">${lines.length?Math.min(...lines)+'–'+Math.max(...lines):'—'}</strong><small>分 · 不等于一条院校线</small></div><div class="detail-stat"><span>院校代码</span><strong>${esc(s.code)}</strong><small>${esc(s.lvl)}招生记录</small></div></div><p class="fine-print">专业组线分别对应不同批次、类型及专业组合，不能把最低一条线视为整所学校所有专业的门槛。</p></section>${detailSectionHTML(s)}<section class="detail-section"><h3>专业组，一组一组看</h3><div class="detail-groups">${gs.length?gs.map(i=>{const g=D.groups[i];return `<button class="detail-group-row" data-group="${i}"><span>${esc(groupLabel(g))} · ${esc(g[G.req]||'选科待补充')}<small>${esc(g[G.batch])}<br>${esc(majorNames(i,3))}</small></span><span>${badge(i)}<small>2025 ${valid(g[G.s25])} 分 ↗</small></span></button>`;}).join(''):'<p>本校在当前科类暂无收录记录。可以切换科类后再看看。</p>'}</div></section><section class="detail-section"><h3>标签的含义</h3>${(s.tag||[]).filter(t=>D.tags[t]).map(t=>`<details><summary>${esc(t)} · ${esc(D.tags[t].title)}</summary><p>${esc(D.tags[t].desc)}</p><p>${esc(D.tags[t].caution)}</p>${safeURL(D.tags[t].source)?`<a class="source-link" href="${esc(safeURL(D.tags[t].source))}" target="_blank" rel="noopener">查看标签来源 ↗</a>`:''}</details>`).join('')||'<p>暂无可展开的标签说明。</p>'}</section>`;
     openDialog('detail-dialog');dialogGo('openSchool',si);
+    /* 详情懒加载：先出骨架，取到后只换这一节 —— 整窗重渲染会把滚动位置弄丢 */
+    if(!D.schoolDetails){
+      ensureSchoolDetails().then(()=>{
+        if(!$('#detail-dialog').open)return;
+        if(!openedDetail||openedDetail.type!=='school'||openedDetail.i!==si)return;
+        const box=$('#detail-archive');
+        if(box)box.innerHTML='<h3>院校详细档案 <span>官方来源索引</span></h3>'+detailInnerHTML(s);
+      }).catch(()=>{});
+    }
   }
   function openComparison(){
     if(state.compare.length<2){toast('再选择一个专业组，就可以并排对比。');return;}
