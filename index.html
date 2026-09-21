@@ -32,14 +32,14 @@
   /* 主色：深靛蓝 */
   --navy:#16233c; --navy-2:#1f3153; --navy-3:#2c4373;
   /* 强调：琥珀 */
-  --amber:#d97d3d; --amber-2:#f0e2d5;
+  --amber:#d97d3d; 
   /* 冲稳保 */
-  --chong:#cf5f4e; --wen:#3d7dc0; --bao:#2e8b6b; --risk:#8d95a3;
+  --chong:#cf5f4e; --wen:#3d7dc0; --bao:#2e8b6b; 
   /* 动效 */
   --ease:cubic-bezier(.16,1,.3,1);          /* 出场：快起慢收 */
-  --ease-io:cubic-bezier(.65,0,.35,1);      /* 进出对称 */
+        /* 进出对称 */
   --spring:cubic-bezier(.34,1.4,.64,1);     /* 弹性 */
-  --t-fast:.18s; --t:.32s; --t-slow:.55s;
+  --t-fast:.18s; --t:.3s; --t-mid:.42s; --t-slow:.55s;
   --r:10px; --r-sm:7px; --r-lg:14px;
   --sh-1:0 1px 2px #10141c0a, 0 1px 3px #10141c08;
   --sh-2:0 2px 6px #10141c0d, 0 8px 24px #10141c0f;
@@ -67,13 +67,13 @@ svg{display:block}
 
 /* ---------- 动效基元 ---------- */
 @keyframes fade-up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes fade-in{from{opacity:0}to{opacity:1}}
+
 @keyframes scale-in{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
 @keyframes slide-right{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
-@keyframes slide-left{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:none}}
+
 @keyframes shimmer{from{background-position:-420px 0}to{background-position:420px 0}}
 @keyframes pulse-ring{0%{transform:scale(.85);opacity:.55}70%{transform:scale(1.5);opacity:0}100%{opacity:0}}
-@keyframes bar-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
 @keyframes dot-bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-4px);opacity:1}}
 .anim{animation:fade-up var(--t-slow) var(--ease) backwards}
 .stagger>*{animation:fade-up var(--t-slow) var(--ease) backwards;animation-delay:calc(var(--i,0)*34ms)}
@@ -763,7 +763,7 @@ body.touch .sortsel{height:44px}
 /* ---- 触摸涟漪 ---- */
 .ripple{position:fixed;pointer-events:none;z-index:95;border-radius:50%;
   background:radial-gradient(circle,#2c437355 0%,#2c437322 45%,transparent 70%);
-  transform:translate(-50%,-50%) scale(0);animation:rip .62s var(--ease) forwards}
+  transform:translate(-50%,-50%) scale(0);animation:rip 0.55s var(--ease) forwards}
 @keyframes rip{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
 .ripple.amber{background:radial-gradient(circle,#d97d3d66 0%,#d97d3d26 45%,transparent 70%)}
 .ripple.green{background:radial-gradient(circle,#2e8b6b66 0%,#2e8b6b26 45%,transparent 70%)}
@@ -771,7 +771,7 @@ body.touch .sortsel{height:44px}
 /* ---- 触摸光晕跟随 ---- */
 .glow{position:fixed;width:280px;height:280px;border-radius:50%;pointer-events:none;z-index:0;
   background:radial-gradient(circle,#2c43731a 0%,transparent 65%);
-  transform:translate(-50%,-50%);opacity:0;transition:opacity .5s var(--ease);will-change:transform}
+  transform:translate(-50%,-50%);opacity:0;transition:opacity 0.55s var(--ease);will-change:transform}
 .glow.on{opacity:1}
 
 /* ---- 特效画布 ---- */
@@ -790,7 +790,7 @@ body.touch .sortsel{height:44px}
 .swipe-wrap.arm-skip .swipe-bg{background:linear-gradient(270deg,#8d95a3,#a8b0bd)}
 .swipe-wrap.arm-skip .swipe-bg .r{opacity:1;transform:none}
 .swipe-wrap .gcard{position:relative;z-index:1;will-change:transform;touch-action:pan-y}
-.swipe-wrap.gone{animation:swipeOut .32s var(--ease) forwards;pointer-events:none}
+.swipe-wrap.gone{animation:swipeOut 0.3s var(--ease) forwards;pointer-events:none}
 @keyframes swipeOut{to{opacity:0;transform:translateX(-44px) scale(.95)}}
 
 /* ---- 数字滚轮 ---- */
@@ -819,13 +819,13 @@ body.touch .sortsel{height:44px}
 .gcard .sheen::after{content:"";position:absolute;top:0;bottom:0;width:130px;
   background:linear-gradient(100deg,transparent,#ffffffb8 45%,transparent);
   transform:translateX(-140px) skewX(-14deg)}
-.swipe-wrap.in .sheen::after{animation:sheen 1.05s var(--ease) .12s both}
+.swipe-wrap.in .sheen::after{animation:sheen 1.05s var(--ease) 0.18s backwards}
 @keyframes sheen{to{transform:translateX(calc(100% + 320px)) skewX(-14deg)}}
 
 /* ---- 加入成功：卡片脉冲 ---- */
-.gcard.pop{animation:pop .52s var(--spring)}
-.add.pop{animation:pop .52s var(--spring)}
-.tiercard.pop{animation:pop .52s var(--spring)}
+.gcard.pop{animation:pop 0.55s var(--spring)}
+.add.pop{animation:pop 0.55s var(--spring)}
+.tiercard.pop{animation:pop 0.55s var(--spring)}
 @keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.045)}100%{transform:scale(1)}}
 .tiercard[aria-pressed="true"]{background:linear-gradient(180deg,#fff,var(--surface-2))}
 .tiercard[aria-pressed="true"] .tn{color:var(--tc)}
@@ -941,7 +941,7 @@ body.stage .drawer-b{padding-bottom:132px}
 .touch-hint{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:56;
   background:#10141ce8;color:#fff;font-size:13px;padding:11px 18px;border-radius:11px;
   display:flex;align-items:center;gap:10px;opacity:0;pointer-events:none;
-  transition:opacity .35s var(--ease),transform .45s var(--spring);backdrop-filter:blur(8px);
+  transition:opacity 0.3s var(--ease),transform 0.42s var(--spring);backdrop-filter:blur(8px);
   box-shadow:var(--sh-3);max-width:calc(100% - 40px)}
 .touch-hint.on{opacity:1;transform:translate(-50%,0)}
 .touch-hint kbd{background:#ffffff26;padding:2px 7px;border-radius:5px;font-family:var(--sans);font-size:12px}
@@ -1100,31 +1100,31 @@ body.stage .basket{width:min(560px,100%)}
    ========================================================================== */
 /* 原生 View Transitions：页面切换整屏交叉淡入 + 轻微位移 */
 @supports (view-transition-name: root) {
-  ::view-transition-old(root){animation:vtOut .3s cubic-bezier(.4,0,1,1) both}
-  ::view-transition-new(root){animation:vtIn .46s cubic-bezier(.16,1,.3,1) both}
+  ::view-transition-old(root){animation:vtOut .3s cubic-bezier(.4,0,1,1) backwards}
+  ::view-transition-new(root){animation:vtIn 0.42s cubic-bezier(.16,1,.3,1) backwards}
   @keyframes vtOut{to{opacity:0;transform:translateY(-10px) scale(.995)}}
   @keyframes vtIn{from{opacity:0;transform:translateY(16px) scale(.995)}}
 }
 /* 页面内分区依次入场 */
 @keyframes secIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.sec-in{animation:secIn .58s var(--ease) backwards}
+.sec-in{animation:secIn 0.55s var(--ease) backwards}
 /* 分区标题下的细线展开 */
-.sec-h .line{transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease) .1s}
+.sec-h .line{transform:scaleX(0);transform-origin:left;transition:transform 0.55s var(--ease) 0.18s}
 .page.on .sec-h .line{transform:scaleX(1)}
 /* 抽屉内容逐段滑入 */
-.drawer-b>.dsec{animation:drawerIn .5s var(--ease) backwards}
+.drawer-b>.dsec{animation:drawerIn 0.55s var(--ease) backwards}
 @keyframes drawerIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
-.drawer-h{animation:drawerHead .42s var(--ease) both}
+.drawer-h{animation:drawerHead .42s var(--ease) backwards}
 @keyframes drawerHead{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
 /* 筛选分组逐个淡入 */
-.fgrp{animation:fade-up .4s var(--ease) backwards}
+.fgrp{animation:fade-up 0.42s var(--ease) backwards}
 .fgrp:nth-child(2){animation-delay:.04s}
 .fgrp:nth-child(3){animation-delay:.08s}
 .fgrp:nth-child(4){animation-delay:.12s}
 .fgrp:nth-child(5){animation-delay:.16s}
 .fgrp:nth-child(6){animation-delay:.2s}
 /* 结果列表刷新时的轻推 */
-.glist.refresh{animation:listPush .38s var(--ease)}
+.glist.refresh{animation:listPush 0.42s var(--ease)}
 @keyframes listPush{0%{opacity:.6;transform:translateY(6px)}100%{opacity:1;transform:none}}
 /* 拖拽中的条目提亮 */
 .prow.dragging{box-shadow:0 18px 40px #10141c26}
@@ -1144,7 +1144,7 @@ body.stage .basket{width:min(560px,100%)}
 .rul::before{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;
   border-radius:0 0 3px 3px;
   background:linear-gradient(90deg,var(--tc),color-mix(in srgb,var(--tc) 28%,transparent));
-  transform-origin:left;animation:pvBar .7s var(--ease) .05s backwards}
+  transform-origin:left;animation:pvBar 0.55s var(--ease) 0.18s backwards}
 @keyframes pvBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
 /* —— 三个读数：你 / 分差 / 组线 —— */
@@ -1173,7 +1173,7 @@ body.stage .basket{width:min(560px,100%)}
 .rg-zones{position:absolute;left:0;right:0;top:46px;height:20px;border-radius:6px;
   overflow:hidden;display:flex;background:var(--surface-3);
   box-shadow:inset 0 0 0 1px var(--line-2);
-  animation:fade-up .45s var(--ease) .16s backwards}
+  animation:fade-up 0.42s var(--ease) 0.18s backwards}
 .zn{position:relative;display:block;overflow:hidden;white-space:nowrap;line-height:1;
   font-size:12px;font-weight:600;letter-spacing:.02em}
 /* 分区名由 JS 定位：躲开两个针脚的圆点，不强行居中 */
@@ -1188,7 +1188,7 @@ body.stage .basket{width:min(560px,100%)}
    用 琥珀 → 藏青 渐变把「你」和「组线」两个针脚直接连起来；
    不能用 --tc（险/远时是灰色，压在灰色斜纹轨道上完全看不见）。 */
 .rg-span{position:absolute;top:50px;height:12px;border-radius:6px;
-  animation:pvSpan .5s var(--ease) .3s backwards;
+  animation:pvSpan 0.55s var(--ease) .3s backwards;
   box-shadow:0 1px 5px #10141c26}
 @keyframes pvSpan{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
@@ -1201,12 +1201,12 @@ body.stage .basket{width:min(560px,100%)}
 .rg-pin .nd{position:absolute;top:24px;left:-1px;width:2px;height:32px;border-radius:1px}
 .rg-pin .kb{position:absolute;top:48px;left:-8px;width:16px;height:16px;border-radius:50%;
   box-sizing:border-box}
-.rg-pin.you{animation:pvYou .5s var(--spring) .2s backwards}
+.rg-pin.you{animation:pvYou 0.55s var(--spring) 0.18s backwards}
 .rg-pin.you .pk{background:var(--amber);color:#fff;box-shadow:0 2px 8px #d97d3d4d}
 .rg-pin.you .nd{background:var(--amber)}
 .rg-pin.you .kb{background:var(--amber);border:3px solid #fff;
   box-shadow:0 0 0 1.5px var(--amber),0 2px 7px #d97d3d59}
-.rg-pin.line{animation:pvLine .5s var(--spring) .34s backwards}
+.rg-pin.line{animation:pvLine 0.55s var(--spring) 0.3s backwards}
 .rg-pin.line .pk{background:var(--surface);color:var(--navy-3);border:1px solid var(--line);
   box-shadow:0 1px 3px #10141c14}
 .rg-pin.line .nd{background:#6d7b91}
@@ -1217,7 +1217,7 @@ body.stage .basket{width:min(560px,100%)}
 
 /* 刻度：等效分在上（大），位次在下（小） */
 .rg-axis{position:relative;height:38px;margin:0 1px;
-  animation:fade-up .4s var(--ease) .4s backwards}
+  animation:fade-up 0.42s var(--ease) 0.42s backwards}
 .tk{position:absolute;top:0;transform:translateX(-50%);text-align:center;white-space:nowrap}
 .tk i{display:block;width:1px;height:4px;background:var(--line);margin:0 auto 3px}
 .tk b{display:block;font-size:13px;font-weight:600;color:var(--ink-2);line-height:1.3;
@@ -1236,7 +1236,7 @@ body.stage .basket{width:min(560px,100%)}
 .rul-verdict{display:flex;align-items:flex-start;gap:12px;margin-top:13px;padding:13px 15px;
   border-radius:10px;background:color-mix(in srgb,var(--tc) 8%,transparent);
   border:1px solid color-mix(in srgb,var(--tc) 24%,transparent);
-  animation:fade-up .45s var(--ease) .48s backwards}
+  animation:fade-up 0.42s var(--ease) 0.42s backwards}
 .rul-verdict>b{flex-shrink:0;width:34px;height:34px;border-radius:9px;background:var(--tc);
   color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700}
 .rul-verdict .vt{display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -1285,7 +1285,7 @@ body.stage .tk span{font-size:13px}
   padding:8px 11px;border-radius:0 7px 7px 0;margin-top:8px}
 .lg-off{font-size:12.5px;line-height:1.8;color:var(--dim);margin-top:7px}
 .lg-src{display:inline-block;font-size:12.5px;color:var(--navy-3);
-  border-bottom:1px solid #c3d0bb;transition:border-color .25s}
+  border-bottom:1px solid #c3d0bb;transition:border-color 0.3s}
 .lg-src:hover{border-color:var(--navy-3)}
 /* 释义条目底部：官网原文 + 「看去这 N 所院校」 */
 .lg-foot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:9px}
@@ -1323,7 +1323,7 @@ body.stage .tk span{font-size:13px}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:#ccd3de;border-radius:6px;border:3px solid transparent;
-  background-clip:content-box;transition:background .25s}
+  background-clip:content-box;transition:background 0.3s}
 ::-webkit-scrollbar-thumb:hover{background:#a7b2c4;background-clip:content-box}
 ::-webkit-scrollbar-corner{background:transparent}
 .drawer-b::-webkit-scrollbar,.basket .drawer-b::-webkit-scrollbar{width:10px}
@@ -1365,7 +1365,7 @@ body.stage ::-webkit-scrollbar-thumb{border-width:4px}
 .mp-empty{padding:44px 20px;text-align:center;color:var(--dim);font-size:13.5px}
 
 .majhead{padding:18px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px;
-  animation:fade-up .45s var(--ease) backwards}
+  animation:fade-up 0.42s var(--ease) backwards}
 .majhead .mh-l{flex:1;min-width:200px}
 .majhead .mh-k{font-size:12px;color:var(--faint);letter-spacing:.06em}
 .majhead .mh-n{font-size:24px;font-weight:600;letter-spacing:-.03em;margin:3px 0 4px}
@@ -1377,7 +1377,7 @@ body.stage ::-webkit-scrollbar-thumb{border-width:4px}
 .majhead .mh-t b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tc);letter-spacing:-.03em}
 .majhead .mh-note{flex-basis:100%;margin-top:12px;padding:12px 15px;border-radius:9px;font-size:13px;
   line-height:1.85;color:#8a7346;background:#fdf7ee;border:1px solid #f0e2cc;
-  animation:fade-up .45s var(--ease) .1s backwards}
+  animation:fade-up 0.42s var(--ease) 0.18s backwards}
 .majhead .mh-note b{color:#6f5a2e;font-weight:600}
 
 /* ==========================================================================
@@ -1387,7 +1387,7 @@ body.stage ::-webkit-scrollbar-thumb{border-width:4px}
 .mjrow{position:relative;padding:15px 16px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);cursor:pointer;box-shadow:var(--sh-1);
   opacity:0;transform:translateY(12px);
-  transition:opacity .5s var(--ease),transform .5s var(--ease),
+  transition:opacity 0.55s var(--ease),transform 0.55s var(--ease),
     border-color var(--t) var(--ease),box-shadow var(--t) var(--ease),background var(--t) var(--ease)}
 .mjrow.in{opacity:1;transform:none}
 .mjrow.in:hover{transform:translateY(-2px);box-shadow:var(--sh-2);border-color:#cfd7e2}
@@ -1444,11 +1444,11 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
 
 /* 顶部滚动进度 */
 .progress{position:fixed;top:0;left:0;height:2px;background:var(--amber);z-index:70;transform-origin:left;
-  transform:scaleX(0);transition:transform .1s linear}
+  transform:scaleX(0);transition:transform 0.18s linear}
 
 /* 载入 */
 .boot{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;
-  transition:opacity .6s var(--ease),visibility .6s}
+  transition:opacity 0.55s var(--ease),visibility 0.55s}
 .boot.gone{opacity:0;visibility:hidden}
 .boot-in{width:min(280px,72vw);text-align:center}
 .boot-in .logo{width:40px;height:40px;margin:0 auto 18px}
@@ -1456,7 +1456,7 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
 .boot-in .s{font-size:12px;color:var(--faint);margin-top:5px;min-height:17px}
 .bootbar{height:3px;background:var(--line);border-radius:2px;margin-top:20px;overflow:hidden}
 .bootbar i{display:block;height:100%;width:0;background:var(--navy);border-radius:2px;
-  transition:width .45s var(--ease)}
+  transition:width 0.42s var(--ease)}
 .dots{display:inline-flex;gap:3px;margin-left:2px}
 .dots i{width:3px;height:3px;border-radius:50%;background:var(--faint);animation:dot-bounce 1.1s infinite}
 .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
@@ -1558,7 +1558,7 @@ body.noanim .tiercard .tr i,body.noanim .ph-bar i{transform:scaleX(1)!important}
 .about-row .qq:active{transform:scale(.97)}
 .about-row .qq i{font-style:normal;font-size:12px;font-weight:400;color:var(--dim)}
 .about-link{display:inline-flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;
-  color:var(--navy-3);border-bottom:1px solid #c3d0bb;transition:border-color .25s}
+  color:var(--navy-3);border-bottom:1px solid #c3d0bb;transition:border-color 0.3s}
 .about-link:hover{border-color:var(--navy-3)}
 .about-fin{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line-2);
   font-size:12.5px;color:var(--faint);line-height:1.9;text-align:center}
@@ -1581,13 +1581,13 @@ body.touch .about-row .qq,body.stage .about-row .qq{min-height:44px;padding:0 14
 .drawer-b>.dsec:nth-child(5){animation-delay:.18s}
 .drawer-b>.dsec:nth-child(n+6){animation-delay:.2s}
 /* 退出时让内容先淡掉再滑走，比整块平移更干净 */
-.drawer:not(.on) .drawer-b{opacity:0;transition:opacity .12s var(--ease)}
-.drawer.on .drawer-b{opacity:1;transition:opacity .22s var(--ease) .04s}
+.drawer:not(.on) .drawer-b{opacity:0;transition:opacity 0.18s var(--ease)}
+.drawer.on .drawer-b{opacity:1;transition:opacity 0.18s var(--ease) 0.18s}
 @media(prefers-reduced-motion:reduce){
   .drawer-b>.dsec{animation:none!important}
   .drawer-b,.drawer.on .drawer-b{opacity:1;transition:none}
 }/* 抽屉打开时收起悬浮条：它本来就压在详情内容上，而且读详情时用不到演示模式 */
-.floatbar{transition:opacity .2s var(--ease),transform .2s var(--ease)}
+.floatbar{transition:opacity 0.18s var(--ease),transform 0.18s var(--ease)}
 body.no-scroll .floatbar{opacity:0;pointer-events:none;transform:translateY(10px)}/* 抽屉里的「返回上一级」：从院校详情点进专业详情后需要一个明确的回退入口 */
 .drawer-h .bak{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
   color:var(--dim);flex-shrink:0;transition:background var(--t) var(--ease),transform var(--t) var(--spring)}
@@ -1702,7 +1702,22 @@ body.touch .ax-b,body.stage .ax-b{font-size:14px;line-height:2}
 @media(max-width:900px){
   body .ax>summary{padding:14px 14px;min-height:44px}
   body .ax-b{padding:0 14px 14px 25px}
-}.prov.misc{background:#eef0f3;color:#5c6874}</style>
+}.prov.misc{background:#eef0f3;color:#5c6874}/* ==========================================================================
+   键盘焦点态
+   --------------------------------------------------------------------------
+   原来只有 2 条 :focus-visible。这个站点在教室白板上用键盘/遥控翻页，
+   焦点看不见就不知道「现在选中了哪一项」。
+   统一走一条外描边，颜色用主色，且用 outline-offset 让它不和边框粘在一起。
+   ========================================================================== */
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,
+summary:focus-visible,[tabindex]:focus-visible{
+  outline:2px solid var(--navy-3);outline-offset:2px;border-radius:var(--r-sm)}
+.gcard:focus-visible,.scard:focus-visible,.swipe-wrap:focus-visible,.chip:focus-visible,
+.fchip:focus-visible,.navitem:focus-visible,.prow:focus-visible{
+  outline:2px solid var(--navy-3);outline-offset:2px}
+body.touch :focus-visible,body.stage :focus-visible{outline-width:3px;outline-offset:3px}
+/* 指针操作时不显示焦点环，只有键盘导航才显示 */
+:focus:not(:focus-visible){outline:none}</style>
 <script>
 /* ==========================================================================
    关于落点（彩蛋）
