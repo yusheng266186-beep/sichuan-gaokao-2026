@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#090e1d" />
+    <meta
+      name="description"
+      content="落点 V3：用分数定位院校专业组，完整查看四川招生计划、专业、学费与往年录取信息，比较并整理你的志愿。"
+    />
+    <title>落点 V3 · 你的升学星图</title>
+    <link rel="icon" href="./mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css?v=3.0.0" />
+    <script src="./core.js?v=3.0.0" defer></script>
+    <script src="./app.js?v=3.0.0" type="module"></script>
+  </head>
+  <body>
+    <canvas id="ambient" aria-hidden="true"></canvas>
+    <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+    <a class="skip" href="#workspace">跳到招生查询</a>
+    <header class="topbar">
+      <a class="brand" href="#explore" aria-label="落点首页"
+        ><img src="./mark.svg" width="38" height="38" alt="" /><span
+          >落点<small>LUODIAN / 03</small></span
+        ></a
+      >
+      <nav aria-label="主导航">
+        <button class="nav active" data-route="explore" aria-current="page">
+          探索星图</button
+        ><button class="nav" data-route="majors">专业宇宙</button
+        ><button class="nav" data-route="schools">院校图鉴</button
+        ><button class="nav" data-route="plan">
+          志愿工作台 <span id="saved-count">0</span>
+        </button>
+      </nav>
+      <div class="top-actions">
+        <button
+          class="command-button"
+          data-action="command"
+          aria-label="搜索与快捷操作"
+        >
+          <svg viewBox="0 0 24 24">
+            <circle cx="10.5" cy="10.5" r="6.5" />
+            <path d="m16 16 4.5 4.5" /></svg
+          ><span>快速查找</span><kbd>⌘ K</kbd></button
+        ><button
+          class="icon-button"
+          data-action="settings"
+          aria-label="体验设置"
+        >
+          <svg viewBox="0 0 24 24">
+            <path d="M4 7h16M4 17h16" />
+            <circle cx="9" cy="7" r="3" />
+            <circle cx="15" cy="17" r="3" />
+          </svg>
+        </button>
+      </div>
+    </header>
+    <main class="shell">
+      <section class="intro">
+        <div>
+          <p class="eyebrow">
+            <span class="tiny-star">✦</span> 四川 · 2026 高考志愿参考
+          </p>
+          <h1>你的分数，通往<span>哪些可能。</span></h1>
+        </div>
+        <button class="data-stamp" data-action="data">
+          <span class="stamp-icon">◈</span
+          ><span
+            ><strong>12,275</strong> 个专业组<small
+              >完整招生信息 · 查看数据说明</small
+            ></span
+          >
+        </button>
+      </section>
+      <section class="position-deck" aria-label="我的分数定位">
+        <div class="position-card">
+          <div class="panel-heading">
+            <span class="eyebrow">01 / 我的坐标</span
+            ><span id="demo-badge" class="quiet-badge">示例分数</span>
+          </div>
+          <div class="position-top">
+            <div class="segmented" aria-label="首选科目">
+              <button data-track="0" aria-pressed="true">物理类</button
+              ><button data-track="1" aria-pressed="false">历史类</button>
+            </div>
+            <button class="text-button" data-action="subjects">
+              <span id="subject-label">设置再选科目</span><span>＋</span>
+            </button>
+          </div>
+          <div class="score-edit">
+            <label for="position-value" id="value-label" class="sr-only"
+              >我的分数</label
+            ><input
+              id="position-value"
+              type="number"
+              value="600"
+              min="1"
+              step="1"
+              inputmode="numeric"
+              aria-describedby="position-note"
+            /><span id="value-unit">分</span>
+            <div class="score-step">
+              <button data-action="plus" aria-label="增加一分">＋</button
+              ><button data-action="minus" aria-label="减少一分">−</button>
+            </div>
+            <button class="mode-switch" data-action="mode">改用位次</button>
+          </div>
+          <label for="score-range" class="sr-only">拖动调整分数</label
+          ><input
+            id="score-range"
+            type="range"
+            min="150"
+            max="685"
+            value="600"
+            step="1"
+          />
+          <div class="range-labels">
+            <span id="range-min">150 分</span><span>拖动，看看选择如何变化</span
+            ><span id="range-max">685 分</span>
+          </div>
+          <div class="position-metrics">
+            <div>
+              <span>2026 对应位次</span><strong id="rank-value">—</strong>
+            </div>
+            <div>
+              <span>2025 同位次等效分</span
+              ><strong id="equivalent-value">—</strong>
+            </div>
+          </div>
+          <p id="position-note" class="position-note" role="status">
+            正在读取一分一段表…
+          </p>
+        </div>
+        <div class="atlas-card">
+          <div class="atlas-top">
+            <div>
+              <span class="eyebrow">02 / 选择的星图</span>
+              <h2>每颗星，都是一个方向。</h2>
+            </div>
+            <button
+              class="atlas-expand icon-button"
+              data-action="atlas-expand"
+              aria-label="展开星图"
+            >
+              ⤢
+            </button>
+          </div>
+          <div class="atlas-plot" id="atlas">
+            <div class="loading-orbit" aria-label="正在加载招生信息">
+              <i></i><i></i><span>正在点亮你的星图</span>
+            </div>
+          </div>
+          <div class="atlas-bottom">
+            <div class="atlas-legend">
+              <span style="--dot: #f8ad85">冲</span
+              ><span style="--dot: #75d9ff">稳</span
+              ><span style="--dot: #90e4b6">保</span
+              ><span style="--dot: #a6b5c8">其他 / 待了解</span>
+            </div>
+            <span id="atlas-note">点星查看专业组</span>
+          </div>
+        </div>
+      </section>
+      <section id="workspace" class="workspace">
+        <div class="workspace-heading">
+          <div>
+            <span class="eyebrow" id="workspace-eyebrow">03 / 探索可能</span>
+            <h2 id="workspace-title">找到你的下一站</h2>
+          </div>
+          <div class="workspace-actions">
+            <button class="button subtle" data-action="destinations">
+              <span>⌖</span> 想去哪里</button
+            ><button class="button subtle mobile-filter" data-action="filters">
+              <span>☷</span> 筛选
+            </button>
+          </div>
+        </div>
+        <div id="explore-layout" class="explore-layout">
+          <aside class="filter-panel" id="filter-panel" aria-label="查询筛选">
+            <div class="filter-header">
+              <h3>缩小范围</h3>
+              <button class="text-button" data-action="reset">重置</button>
+            </div>
+            <div id="filters"></div>
+            <div class="filter-foot">
+              <span>✦</span>
+              <p>从一个条件开始。<br />每一条结果，都可以继续深入。</p>
+            </div>
+          </aside>
+          <div class="results-workspace">
+            <div class="search-bar">
+              <svg viewBox="0 0 24 24">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m16 16 4.5 4.5" /></svg
+              ><label for="search" class="sr-only"
+                >搜索院校、专业或院校代码</label
+              ><input
+                id="search"
+                type="search"
+                placeholder="搜索院校、专业、城市或院校代码…"
+                autocomplete="off"
+              /><button
+                class="icon-button"
+                id="search-clear"
+                data-action="search-clear"
+                aria-label="清空搜索"
+                hidden
+              >
+                ×</button
+              ><kbd>/</kbd>
+            </div>
+            <div class="quick-picks" id="quick-picks">
+              <button data-preset="sichuan">留在四川</button
+              ><button data-preset="public">公办本科</button
+              ><button data-preset="teacher">师范方向</button
+              ><button data-preset="tech">工学探索</button
+              ><button data-preset="vocational">高职专科</button
+              ><button data-preset="985">985 院校</button>
+            </div>
+            <div class="tier-row" id="tier-row">
+              <div class="tier-tabs">
+                <button data-tier="" aria-pressed="true">
+                  全部 <b id="count-all">—</b></button
+                ><button data-tier="chong" aria-pressed="false">
+                  <i style="--dot: #f8ad85"></i>冲一冲
+                  <b id="count-chong">—</b></button
+                ><button data-tier="wen" aria-pressed="false">
+                  <i style="--dot: #75d9ff"></i>稳一稳
+                  <b id="count-wen">—</b></button
+                ><button data-tier="bao" aria-pressed="false">
+                  <i style="--dot: #90e4b6"></i>保一保 <b id="count-bao">—</b>
+                </button>
+              </div>
+              <div class="layout-switch" aria-label="结果布局">
+                <button
+                  data-layout="cards"
+                  aria-pressed="true"
+                  aria-label="卡片布局"
+                >
+                  ▦</button
+                ><button
+                  data-layout="list"
+                  aria-pressed="false"
+                  aria-label="列表布局"
+                >
+                  ☷
+                </button>
+              </div>
+            </div>
+            <div id="filter-chips" class="filter-chips"></div>
+            <div class="result-heading">
+              <p id="results-count" role="status">正在整理招生信息…</p>
+              <label class="sort-control"
+                >排序<select id="sort">
+                  <option value="close">位次最接近</option>
+                  <option value="score">往年组线从高到低</option>
+                  <option value="fee">学费从低到高</option>
+                  <option value="plan">招生计划从多到少</option>
+                  <option value="school">源表院校排名</option>
+                </select></label
+              >
+            </div>
+            <div id="results" class="results-grid" aria-busy="true">
+              <div class="skeleton-card"></div>
+              <div class="skeleton-card"></div>
+              <div class="skeleton-card"></div>
+            </div>
+            <div id="more-area" class="more-area">
+              <button class="button more-button" data-action="more" hidden>
+                再看 24 个</button
+              ><span id="shown-count"></span>
+            </div>
+          </div>
+        </div>
+        <div id="plan-workspace" hidden></div>
+      </section>
+      <footer>
+        <div class="footer-brand">落点 <span>V3 · STAR ATLAS</span></div>
+        <p>把可能看清，把选择握在自己手里。</p>
+        <div>
+          <button data-action="help">使用指南</button
+          ><button data-action="data">数据与来源</button
+          ><a href="../v2/">第二代</a><a href="../">第一代</a
+          ><a
+            href="https://github.com/yusheng266186-beep/sichuan-gaokao-2026"
+            target="_blank"
+            rel="noopener"
+            >项目记录</a
+          >
+        </div>
+        <small
+          >往年位置对照 · 组线与专业线分开看 · 正式填报核对当年招生计划</small
+        >
+      </footer>
+    </main>
+    <div id="compare-tray" class="compare-tray" hidden>
+      <div>
+        <span class="tiny-star">✦</span><strong id="compare-summary"></strong>
+        <div id="compare-names"></div>
+      </div>
+      <button class="button primary" data-action="compare-open">并排比较</button
+      ><button
+        class="icon-button"
+        data-action="compare-clear"
+        aria-label="清空对比"
+      >
+        ×
+      </button>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="atlas-tooltip" class="atlas-tooltip" hidden></div>
+    <dialog
+      id="detail-dialog"
+      class="detail-dialog"
+      aria-labelledby="detail-title"
+    >
+      <div class="dialog-top">
+        <button
+          class="icon-button"
+          data-action="detail-back"
+          id="detail-back"
+          aria-label="返回上一级"
+          hidden
+        >
+          ‹</button
+        ><span id="detail-kicker" class="eyebrow">专业组档案</span
+        ><button
+          class="icon-button close-button"
+          data-close
+          aria-label="关闭详情"
+        >
+          ×
+        </button>
+      </div>
+      <div id="detail-content"></div>
+    </dialog>
+    <dialog
+      id="modal-dialog"
+      class="modal-dialog"
+      aria-labelledby="modal-title"
+    >
+      <div class="dialog-top">
+        <span class="eyebrow" id="modal-kicker">落点</span
+        ><button class="icon-button close-button" data-close aria-label="关闭">
+          ×
+        </button>
+      </div>
+      <h2 id="modal-title"></h2>
+      <div id="modal-content"></div>
+    </dialog>
+    <dialog id="command-dialog" class="command-dialog" aria-label="快速查找">
+      <div class="command-search">
+        <svg viewBox="0 0 24 24">
+          <circle cx="10.5" cy="10.5" r="6.5" />
+          <path d="m16 16 4.5 4.5" /></svg
+        ><input
+          id="command-input"
+          type="search"
+          placeholder="院校、专业，或一个操作…"
+          aria-label="查找院校、专业与操作"
+        /><button class="icon-button" data-close aria-label="关闭快速查找">
+          ×
+        </button>
+      </div>
+      <div id="command-results"></div>
+      <p class="command-hint">输入关键词查找 · Esc 关闭</p>
+    </dialog>
+    <input
+      type="file"
+      id="import-file"
+      accept=".json,application/json"
+      hidden
+    />
+    <div id="stage-dock" class="stage-dock" hidden>
+      <strong>白板演示</strong
+      ><button class="button" data-action="fullscreen">全屏</button
+      ><button class="button" data-action="position-focus">调整分数</button
+      ><button class="button" data-action="stage">退出演示</button>
+    </div>
+    <noscript
+      ><p class="noscript">
+        请启用 JavaScript 以读取招生数据与使用查询功能。
+      </p></noscript
+    >
+  </body>
+</html>

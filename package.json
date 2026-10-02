@@ -1,0 +1,16 @@
+{
+  "name": "luodian-sichuan-gaokao",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Static admissions atlas. Dependencies are for browser QA only.",
+  "scripts": {
+    "build:v3": "python3 tools/build-v3.py",
+    "verify:data": "python3 tools/build-v3.py --check",
+    "test": "node --test tests/v2-core.test.js tests/v3-core.test.cjs",
+    "test:browser": "node tests/v3-browser.cjs",
+    "preview": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}
