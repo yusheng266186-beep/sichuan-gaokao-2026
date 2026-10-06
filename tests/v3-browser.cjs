@@ -89,7 +89,9 @@ async function workflow(width, base) {
   try {
     await ready(page, base + "/v3/");
     await page.waitForTimeout(400);
-    assert.equal(await page.locator("#results .result-card").count(), 24);
+    assert.equal(await page.locator("#list-body tr").count(), 24);
+    assert.equal(await page.locator("html").getAttribute("data-theme"), "light");
+    assert.equal(await page.locator("#distribution-panel").evaluate((el) => el.open), false);
     assert.equal(
       fetched.some((u) => /data\/schools\//.test(u)),
       false,
@@ -159,12 +161,12 @@ async function workflow(width, base) {
     await noOverflow(page, width + " 对比");
     await shot(page, width + "-compare");
     await closeDialog(page);
-    await page.locator("#results [data-group]").first().click();
+    await page.locator("#results .actions-cell [data-group]").first().click();
     await page.waitForSelector("#professional-content .major-detail");
     const title = await page.locator("#detail-title").textContent();
     await page.locator(".major-detail summary").first().click();
     assert.ok(await page.locator(".major-body").first().textContent());
-    await page.locator("#detail-dialog [data-school]").click();
+    await page.locator("#detail-content [data-school]").last().click();
     await page.waitForSelector("#school-archive .archive-section");
     assert.equal(
       await page.locator("#school-archive .archive-section").count(),
@@ -332,16 +334,20 @@ async function workflow(width, base) {
       ).includes(note),
     );
     await page.locator("[data-action=settings]").click();
-    await page.locator("[data-setting=theme]").selectOption("light");
+    await page.locator("[data-setting=theme]").selectOption("dark");
     await page.locator("[data-setting=motion]").selectOption("none");
     await closeDialog(page, "#modal-dialog");
-    await shot(page, width + "-light");
+    await shot(page, width + "-dark");
     assert.equal(
       await page.locator("html").getAttribute("data-theme"),
-      "light",
+      "dark",
     );
     await page.locator("[data-route=explore]").click();
-    await page.locator("#results [data-group]").first().click();
+    await page.locator("#distribution-panel summary").click();
+    await page.waitForSelector("#atlas .star-dot");
+    await noOverflow(page, width + " 分布图");
+    await page.locator("#distribution-panel summary").click();
+    await page.locator("#results .actions-cell [data-group]").first().click();
     await page.waitForSelector("#professional-content .major-detail");
     await closeDialog(page);
     await page.locator("[data-action=settings]").click();
@@ -375,11 +381,13 @@ async function viewportAndFailure(base) {
     for (const width of [320, 360, 430, 768, 1024, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await noOverflow(page, width + " 初始布局");
-      await page.locator("#results [data-group]").first().click();
+      await page.locator("#results .actions-cell [data-group]").first().click();
       await page.waitForSelector("#professional-content .major-detail");
       await noOverflow(page, width + " 详情");
       await closeDialog(page);
-      await page.locator("[data-action=destinations]").click();
+      const regionAction = page.locator("[data-action=destinations]");
+      if (await regionAction.isVisible()) await regionAction.click();
+      else await page.locator("[data-action=filters]").click();
       await noOverflow(page, width + " 地区");
       await closeDialog(page, "#modal-dialog");
     }
@@ -389,7 +397,7 @@ async function viewportAndFailure(base) {
     await page.waitForFunction(
       () => !document.querySelector("#modal-dialog").open,
     );
-    await page.locator("#results [data-group]").first().click();
+    await page.locator("#results .actions-cell [data-group]").first().click();
     await page.waitForSelector("#professional-content .major-detail");
     await page.locator("#detail-content [data-tag-info]").first().click();
     await page.goBack();
@@ -414,6 +422,7 @@ async function viewportAndFailure(base) {
     assert.ok(
       (await page.locator("#results-count").textContent()).startsWith("39 "),
     );
+    await page.locator("[data-layout=cards]").click();
     await page.locator("[data-action=more]").click();
     const cardIds = await page
       .locator("#results [data-card]")
@@ -442,19 +451,14 @@ async function viewportAndFailure(base) {
     await page.route("**/data/schools/*.json*", (r) =>
       fail ? r.abort() : r.continue(),
     );
-    await page.locator("#results [data-group]").first().click();
+    await page.locator("#results .actions-cell [data-group]").first().click();
     await page.waitForSelector("[data-retry-group]");
     fail = false;
     await page.locator("[data-retry-group]").click();
     await page.waitForSelector("#professional-content .major-detail");
     await closeDialog(page);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    assert.equal(
-      await page
-        .locator("#ambient")
-        .evaluate((el) => getComputedStyle(el).display),
-      "none",
-    );
+    assert.equal(await page.locator("#ambient").count(), 0);
     const orphan = {
       id: "unknown|0|批次|类型|00",
       note: "原始备注必须保留",

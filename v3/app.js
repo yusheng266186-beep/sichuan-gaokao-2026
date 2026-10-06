@@ -1,5 +1,5 @@
 import { AdmissionsRepository } from "./data.js";
-import { Motion } from "./motion.js";
+import { Motion } from "./motion.js?v=3.1.0";
 
 const C = window.LuodianV3,
   G = C.G,
@@ -58,12 +58,12 @@ const state = {
   route: "explore",
   profile: { track: 0, mode: "score", value: 600, subjects: [], demo: true },
   filters: defaults(),
-  layout: "cards",
+  layout: "list",
   limit: 24,
   saved: [],
   compare: [],
   planBatch: "本科批B段",
-  settings: { theme: "dark", motion: "auto", stage: false },
+  settings: { theme: "light", motion: "none", stage: false },
 };
 let D,
   pos = {},
@@ -127,7 +127,7 @@ function band(i) {
 }
 function badge(i) {
   const b = C.bands[band(i)];
-  return `<span class="band-badge" style="--band:${b.color}">${b.name}</span>`;
+  return `<span class="band-badge" data-band="${band(i)}" style="--band:${b.color}">${b.name}</span>`;
 }
 function fee(g) {
   if (!(g[G.feeMin] >= 0)) return "学费未提供";
@@ -164,26 +164,19 @@ function scoreGap(i) {
   return `${n > 0 ? "+" : ""}${n} 分 · 同位次口径`;
 }
 function groupActions(i) {
-  return `<button class="text-button" data-group="${i}">查看完整档案 <span>＋</span></button><button class="mini-action" data-compare="${i}" aria-pressed="${state.compare.includes(i)}" aria-label="对比${esc(D.schools[D.groups[i][0]].n)}专业组${esc(D.groups[i][4])}">${icon.compare}</button><button class="mini-action" data-save="${i}" aria-pressed="${isSaved(i)}" aria-label="${isSaved(i) ? "取消关注" : "关注"}${esc(D.schools[D.groups[i][0]].n)}专业组${esc(D.groups[i][4])}">${icon.save}</button>`;
+  return `<button class="text-button" data-group="${i}">详情</button><button class="mini-action" data-compare="${i}" aria-pressed="${state.compare.includes(i)}" aria-label="对比${esc(D.schools[D.groups[i][0]].n)}专业组${esc(D.groups[i][4])}">${icon.compare}</button><button class="mini-action" data-save="${i}" aria-pressed="${isSaved(i)}" aria-label="${isSaved(i) ? "取消关注" : "关注"}${esc(D.schools[D.groups[i][0]].n)}专业组${esc(D.groups[i][4])}">${icon.save}</button>`;
 }
-function groupCard(i, n = 0) {
-  const g = D.groups[i],
-    s = D.schools[g[0]],
-    b = C.bands[band(i)];
-  return `<article class="result-card" data-card="${i}" style="--order:${Math.min(n, 7)};--band:${b.color}"><div class="card-overline"><span class="school-seal" aria-hidden="true">${seal(s)}</span>${badge(i)}</div><button class="card-school" data-school="${g[0]}">${esc(s.n)}</button><p class="card-location">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)}</p><div class="card-group"><strong>专业组 ${esc(g[4])}</strong><span>${esc(g[G.req] || "选科待核对")}</span>${(
-    s.tag || []
-  )
-    .filter((t) => ["985", "211", "双一流"].includes(t))
-    .slice(0, 1)
-    .map((t) => `<span>${esc(t)}</span>`)
-    .join(
-      "",
-    )}</div><p class="card-majors">${esc(majors(i))}</p><div class="card-metrics"><div><span>2025 专业组调档线</span><strong>${positive(g[G.s25])}<small>分</small></strong><span class="card-gap">${scoreGap(i) || "暂无精确分差对照"}</span></div><div><span>2025 最低位次</span><strong class="rank-number">${positive(g[G.r25])}</strong></div></div><div class="card-info-line"><span>${esc(fee(g))}</span><span>计划 ${nf(g[G.plan])} 人</span></div><div class="card-actions">${groupActions(i)}</div></article>`;
+function groupIdentity(i) {
+  const g = D.groups[i], s = D.schools[g[0]];
+  return `<div class="school-line"><button class="card-school" data-school="${g[0]}">${esc(s.n)}</button>${(s.tag || []).filter(t => ["985", "211", "双一流"].includes(t)).slice(0, 1).map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div><p class="row-meta">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)}<span>院校代码 ${esc(s.code)}</span></p><div class="row-group"><button data-group="${i}">专业组 ${esc(g[4])}</button><span>${esc(g[G.req] || "选科待核对")}</span></div><p class="row-majors" title="${esc(majors(i, 100))}">${esc(majors(i, 4))}${D.links[i].length > 4 ? " 等" : ""}</p>`;
+}
+function groupCard(i) {
+  const g = D.groups[i];
+  return `<article class="result-card" data-card="${i}"><div class="card-overline">${badge(i)}<span class="quiet-badge">${esc(g[G.batch])}</span></div>${groupIdentity(i)}<div class="compact-metrics"><div><span>2025 组线</span><strong>${positive(g[G.s25])}<small>分</small></strong></div><div><span>最低位次</span><strong>${positive(g[G.r25])}</strong></div><div><span>2026 计划</span><strong>${nf(g[G.plan])}<small>人</small></strong></div></div><div class="card-info-line"><span>${esc(fee(g))}</span><span>${scoreGap(i)}</span></div><div class="card-actions">${groupActions(i)}</div></article>`;
 }
 function groupRow(i) {
-  const g = D.groups[i],
-    s = D.schools[g[0]];
-  return `<tr><td><button class="card-school" data-school="${g[0]}">${esc(s.n)}</button><small><button class="text-button" data-group="${i}">专业组 ${esc(g[4])}</button> · ${esc(g[G.req] || "选科待核对")}</small></td><td><span class="list-score">${positive(g[G.s25])}</span><small>${scoreGap(i)}</small></td><td>${badge(i)}</td><td class="list-rank">${positive(g[G.r25])}<small>${esc(fee(g))}</small></td><td><div class="list-actions">${groupActions(i)}</div></td></tr>`;
+  const g = D.groups[i];
+  return `<tr data-card="${i}"><td class="identity-cell">${groupIdentity(i)}</td><td class="score-cell" data-label="2025 组线"><strong class="list-score">${positive(g[G.s25])}<span> 分</span></strong><small>${scoreGap(i) || "暂不作分差对照"}</small></td><td class="rank-cell" data-label="最低位次"><strong>${positive(g[G.r25])}</strong></td><td class="plan-cell" data-label="2026 计划"><strong>${nf(g[G.plan])}</strong><small>人</small></td><td class="fee-cell" data-label="年学费">${esc(fee(g))}</td><td class="band-cell" data-label="分档">${badge(i)}</td><td class="actions-cell"><div class="list-actions">${groupActions(i)}</div></td></tr>`;
 }
 function schoolCard(row, n) {
   const s = D.schools[row.i],
@@ -195,7 +188,7 @@ function schoolCard(row, n) {
     .map((t) => `<span class="tag">${esc(t)}</span>`)
     .join(
       "",
-    )}</div><p class="card-majors">${esc(s.focus || "学科方向暂未提供，打开院校档案继续了解。")}</p><div class="card-metrics"><div><span>当前筛选下的专业组</span><strong>${row.groups.length}<small>组</small></strong></div><div><span>2025 组线范围</span><strong class="rank-number">${lines.length ? Math.min(...lines) + "–" + Math.max(...lines) : "—"}</strong></div></div><div class="card-actions"><button class="text-button" data-school="${row.i}">查看院校图鉴 <span>＋</span></button></div></article>`;
+    )}</div><p class="card-majors">${esc(s.focus || "学科方向暂未提供，打开院校档案继续了解。")}</p><div class="card-metrics"><div><span>当前筛选下的专业组</span><strong>${row.groups.length}<small>组</small></strong></div><div><span>2025 组线范围</span><strong class="rank-number">${lines.length ? Math.min(...lines) + "–" + Math.max(...lines) : "—"}</strong></div></div><div class="card-actions"><button class="text-button" data-school="${row.i}">查看院校档案</button></div></article>`;
 }
 function majorCard(row, n) {
   const schoolIds = [...row.schools],
@@ -207,7 +200,7 @@ function majorCard(row, n) {
       .slice(0, 3)
       .map((i) => D.schools[i].n)
       .join(" · "),
-  )}${schoolIds.length > 3 ? " 等" : ""}</p><div class="card-info-line"><span>2025 组线 ${scores.length ? Math.min(...scores) + "–" + Math.max(...scores) + " 分" : "暂缺"}</span></div><div class="card-actions"><button class="text-button" data-major="${row.i}">看看哪些组招这个专业 <span>＋</span></button></div></article>`;
+  )}${schoolIds.length > 3 ? " 等" : ""}</p><div class="card-info-line"><span>2025 组线 ${scores.length ? Math.min(...scores) + "–" + Math.max(...scores) + " 分" : "暂缺"}</span></div><div class="card-actions"><button class="text-button" data-major="${row.i}">查看招生专业组</button></div></article>`;
 }
 function options(items, value, blank = "全部") {
   return (
@@ -256,16 +249,14 @@ function filterMarkup(prefix = "f") {
       "不限（含未知）",
     ],
   ];
-  return (
-    fields
-      .map(
-        ([k, label, items, blank]) =>
-          `<label class="filter-field" for="${prefix}-${k}"><span>${label}</span><select id="${prefix}-${k}" data-filter="${k}">${options(items, f[k], blank)}</select></label>`,
-      )
-      .join("") +
-    `<label class="filter-check"><input type="checkbox" data-filter="subjectOnly" ${f.subjectOnly ? "checked" : ""} ${state.profile.subjects.length !== 2 ? "disabled" : ""}>仅看选科匹配</label><label class="filter-check"><input type="checkbox" data-filter="line" ${f.line ? "checked" : ""}>只看有 2025 组线</label>`
-  );
+  const renderField = ([k, label, items, blank]) =>
+    `<label class="filter-field" for="${prefix}-${k}"><span>${label}</span><select id="${prefix}-${k}" data-filter="${k}">${options(items, f[k], blank)}</select></label>`;
+  const primary = ["batch", "province", "own", "category", "fee"];
+  const advanced = fields.filter(([k]) => !primary.includes(k));
+  return primary.map(k => renderField(fields.find(([name]) => name === k))).join("") +
+    `<details class="advanced-filters" ${advanced.some(([k]) => f[k] !== "") ? "open" : ""}><summary>更多筛选条件</summary>${advanced.map(renderField).join("")}</details><label class="filter-check"><input type="checkbox" data-filter="subjectOnly" ${f.subjectOnly ? "checked" : ""} ${state.profile.subjects.length !== 2 ? "disabled" : ""}>仅看选科匹配</label><label class="filter-check"><input type="checkbox" data-filter="line" ${f.line ? "checked" : ""}>仅看有 2025 组线</label>`;
 }
+
 function syncProfile() {
   const p = state.profile,
     dist = D.dist["2026|" + C.tracks[p.track]];
@@ -313,13 +304,14 @@ function syncProfile() {
   );
 }
 function renderAtlas() {
+  if (!$("#distribution-panel").open) return;
   const rows = unbanded
     .filter((i) => D.groups[i][G.s25] > 0)
     .sort((a, b) => D.groups[a][G.s25] - D.groups[b][G.s25]);
   if (!rows.length) {
     $("#atlas").innerHTML =
       '<div class="loading-orbit"><span>当前筛选范围暂无有效的 2025 组线</span></div>';
-    $("#atlas-note").textContent = "调整条件后继续探索";
+    $("#atlas-note").textContent = "可调整筛选条件";
     return;
   }
   const mobile = innerWidth < 680,
@@ -363,7 +355,7 @@ function renderAtlas() {
         b = C.bands[band(i)],
         px = x(g[G.s25]),
         py = y(s, i);
-      return `<circle class="star-halo" cx="${px}" cy="${py}" r="${n % 6 === 0 ? 11 : 6}" fill="${b.color}" opacity="${n % 6 === 0 ? 0.12 : 0.05}" style="animation-delay:-${i % 5}s"/><circle class="star-dot" data-group="${i}" cx="${px}" cy="${py}" r="${n % 7 === 0 ? 3.6 : 2.4}" fill="${b.color}" opacity="${n % 7 === 0 ? 0.95 : 0.75}" role="button" tabindex="0" aria-label="${esc(s.n)}专业组${esc(g[4])}，2025组线${g[G.s25]}分"/>`;
+      return `<circle class="star-dot" data-group="${i}" cx="${px}" cy="${py}" r="3" fill="${b.color}" opacity="${n % 7 === 0 ? 0.95 : 0.75}" role="button" tabindex="0" aria-label="${esc(s.n)}专业组${esc(g[4])}，2025组线${g[G.s25]}分"/>`;
     })
     .join("");
   const label = !mobile
@@ -377,9 +369,9 @@ function renderAtlas() {
       return `<line x1="${x(score)}" y1="20" x2="${x(score)}" y2="${bottom}" stroke="var(--line)" stroke-dasharray="2 6"/><text x="${x(score)}" y="${bottom + 21}" text-anchor="middle">${score}</text>`;
     }).join("");
   $("#atlas").innerHTML =
-    `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="专业组星图。横轴为2025调档线分数，纵向按地域大区排列。星点可打开专业组详情。"><circle cx="${W * 0.58}" cy="${H * 0.47}" r="${mobile ? 57 : 85}" fill="none" stroke="#7bbfff" opacity=".075"/><circle cx="${W * 0.58}" cy="${H * 0.47}" r="${mobile ? 77 : 113}" fill="none" stroke="#9998ff" opacity=".065"/>${regions.map((r, n) => `<text x="0" y="${(mobile ? 29 : 39) + n * (mobile ? 19 : 23)}">${r}</text>`).join("")}${ticks}${marker !== null ? `<line class="my-line" x1="${marker}" y1="15" x2="${marker}" y2="${bottom}"/><text class="my-label" x="${Math.max(mobile ? 85 : 100, Math.min(W - 70, marker))}" y="12" text-anchor="middle">${mobile ? "等效分" : "你的等效分"} ${eq.score}${x(eq.score) < left || x(eq.score) > W - right ? "（范围外）" : ""}</text>` : ""}${dots}${labelSchool ? `<text x="${Math.min(W - 130, x(labelGroup[G.s25]) + 8)}" y="${y(labelSchool, label) + 19}" data-group="${label}" style="cursor:pointer;font-size:11px">${esc(labelSchool.n)}</text>` : ""}<text x="${W - right}" y="${H - 2}" text-anchor="end" style="font-size:${mobile ? 9 : 10}px">2025 专业组调档线 / 分</text></svg>`;
+    `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="专业组调档线分布。横轴为2025调档线，纵向为地域大区。点选可查看详情。">${regions.map((r, n) => `<text x="0" y="${(mobile ? 29 : 39) + n * (mobile ? 19 : 23)}">${r}</text>`).join("")}${ticks}${marker !== null ? `<line class="my-line" x1="${marker}" y1="15" x2="${marker}" y2="${bottom}"/><text class="my-label" x="${Math.max(mobile ? 85 : 100, Math.min(W - 70, marker))}" y="12" text-anchor="middle">${mobile ? "等效分" : "你的等效分"} ${eq.score}${x(eq.score) < left || x(eq.score) > W - right ? "（范围外）" : ""}</text>` : ""}${dots}${labelSchool ? `<text x="${Math.min(W - 130, x(labelGroup[G.s25]) + 8)}" y="${y(labelSchool, label) + 19}" data-group="${label}" style="cursor:pointer;font-size:11px">${esc(labelSchool.n)}</text>` : ""}<text x="${W - right}" y="${H - 2}" text-anchor="end" style="font-size:${mobile ? 9 : 10}px">2025 专业组调档线 / 分</text></svg>`;
   $("#atlas-note").textContent =
-    `展示 ${sample.length} / ${nf(rows.length)} 个有线组 · 点星查看`;
+    `展示 ${sample.length} / ${nf(rows.length)} 个有线组 · 点选查看`;
 }
 function aggregate() {
   if (state.route === "explore") return matched;
@@ -475,7 +467,7 @@ function renderResults(append = false) {
   $(".layout-switch").hidden = state.route !== "explore";
   if (!rows.length)
     $("#results").innerHTML =
-      `<div class="empty-state"><span>✧</span><h3>这个范围，暂时没有结果。</h3><p>移除一个筛选条件，或更换专业关键词，再看看其他可能。</p><button class="button primary" data-action="reset">重置筛选</button></div>`;
+      `<div class="empty-state"><span>✧</span><h3>没有符合条件的结果</h3><p>可以减少筛选条件或更换关键词。</p><button class="button primary" data-action="reset">重置筛选</button></div>`;
   else if (table) {
     if (append && $("#list-body"))
       $("#list-body").insertAdjacentHTML(
@@ -487,7 +479,7 @@ function renderResults(append = false) {
       );
     else
       $("#results").innerHTML =
-        `<table class="list-table"><thead><tr><th>院校 / 专业组</th><th>2025 组线</th><th>位次对照</th><th>最低位次 / 学费</th><th>继续了解</th></tr></thead><tbody id="list-body">${rows.map(groupRow).join("")}</tbody></table>`;
+        `<table class="list-table"><thead><tr><th>院校 / 专业组</th><th>2025 组线</th><th>最低位次</th><th>2026 计划</th><th>年学费</th><th>分档</th><th>操作</th></tr></thead><tbody id="list-body">${rows.map(groupRow).join("")}</tbody></table>`;
   } else {
     const renderer =
       state.route === "explore"
@@ -561,7 +553,7 @@ function url() {
         if (state.filters[k]) p.set(k, "1");
       } else p.set(k, state.filters[k]);
     }
-  if (state.layout !== "cards") p.set("layout", state.layout);
+  if (state.layout !== "list") p.set("layout", state.layout);
   if (state.settings.stage) p.set("stage", "1");
   return "?" + p + "#" + state.route;
 }
@@ -575,16 +567,17 @@ function navigate(route, fromHistory = false) {
     route = "explore";
   const changed = state.route !== route;
   state.route = route;
+  document.body.dataset.route = route;
   $$("[data-route]").forEach((b) => {
     b.classList.toggle("active", b.dataset.route === route);
     if (b.dataset.route === route) b.setAttribute("aria-current", "page");
     else b.removeAttribute("aria-current");
   });
   const labels = {
-    explore: ["03 / 探索可能", "找到你的下一站"],
-    schools: ["03 / 院校图鉴", "从一所学校开始了解"],
-    majors: ["03 / 专业宇宙", "把兴趣，变成看得见的方向"],
-    plan: ["03 / 志愿工作台", "把你的选择，放在一起看"],
+    explore: ["四川 · 2026 招生计划", "专业组查询"],
+    schools: ["四川 · 2026 招生计划", "院校查询"],
+    majors: ["四川 · 2026 招生计划", "专业查询"],
+    plan: ["按科类与批次整理", "我的志愿"],
   };
   $("#workspace-eyebrow").textContent = labels[route][0];
   $("#workspace-title").textContent = labels[route][1];
@@ -751,10 +744,10 @@ function enterDetail(type, id, replay = false) {
   detailToken++;
   $("#detail-kicker").textContent =
     type === "group"
-      ? "专业组档案 / GROUP"
+      ? "专业组档案"
       : type === "school"
-        ? "院校图鉴 / UNIVERSITY"
-        : "专业组对比 / COMPARE";
+        ? "院校档案"
+        : "专业组对比";
   if (type === "group") renderGroupDetail(id);
   if (type === "school") renderSchoolDetail(id);
   if (type === "compare") renderComparison();
@@ -799,7 +792,7 @@ function renderGroupDetail(i) {
       )
       .join(
         "",
-      )}</div><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub"><b>专业组 ${esc(g[G.code])}</b><span>${trackName(g[1])} · ${esc(g[G.batch])} · ${esc(g[G.type])}</span></div><div class="detail-sub">院校代码 ${esc(s.code)} · ${esc(s.prov)} ${esc(s.city)} · ${esc(s.own)}</div><div class="detail-actions"><button class="button primary" data-save="${i}" data-save-label aria-pressed="${isSaved(i)}">${icon.save}${isSaved(i) ? "已关注" : "关注这个组"}</button><button class="button" data-compare="${i}" aria-pressed="${state.compare.includes(i)}">${icon.compare}加入比较</button>${charter ? `<a class="button" href="${esc(charter)}" target="_blank" rel="noopener">招生章程</a>` : ""}</div></div><section class="detail-section"><h3>你与这个组的距离 ${badge(i)}</h3>${comparisonPosition(i)}</section><section class="detail-section"><h3>先核对三个条件</h3><div class="detail-stats"><div class="detail-stat"><span>再选科目要求</span><strong style="font-size:19px">${esc(g[G.req] || "未提供")}</strong><small>${{ ok: "符合已知选科要求", mismatch: "与你的选科不符", unset: "设置两门再选科目后核验", unknown: "请核对当年招生章程" }[status]}</small></div><div class="detail-stat"><span>2026 招生计划</span><strong>${nf(g[G.plan])}</strong><small>人 · 组内合计</small></div><div class="detail-stat"><span>四川填报学费</span><strong style="font-size:18px">${esc(fee(g))}</strong><small>招生考试报 · 组内区间</small></div></div>${g[G.type] !== "普通类" || !["本科批B段", "高职(专科)批"].includes(g[G.batch]) ? '<p class="note-box warn" style="margin-top:12px">这个组涉及特殊批次或类型。分数、选科匹配不能代替专项资格、体检和招生章程核验。</p>' : ""}</section><div class="detail-tabs" role="tablist"><button data-detail-tab="majors" role="tab" aria-selected="true">组内专业</button><button data-detail-tab="history" role="tab" aria-selected="false">历年与计划</button><button data-detail-tab="source" role="tab" aria-selected="false">来源与字段</button></div><section class="detail-section" data-detail-panel="majors"><h3>${g[G.n]} 条招生专业记录 <small>专业录取线与组线不同</small></h3><p class="note-box">达到组线不等于可以进入组内任意专业。展开专业查看它自己的往年线、计划、学费与评价。</p><div class="detail-search" style="margin-top:15px"><input type="search" id="professional-search" placeholder="在这个组里查找专业…" aria-label="筛选组内专业"></div><div id="professional-content"><div class="inline-loading">正在读取完整专业档案…</div></div></section><section class="detail-section" data-detail-panel="history" hidden><h3>历年专业组调档线</h3>${historyTable(g)}<p class="fine-print">2024、2023 为旧文理分科参考，不参与新高考冲稳保分档。专业组可能跨年重组。</p><h3 style="margin-top:25px">计划与录取</h3><div class="note-box">2026 计划 ${nf(g[G.plan])} 人，2025 实际录取 ${positive(g[G.admit25])} 人。${g[G.plan] > 0 && g[G.admit25] >= 10 ? "数量相差 " + Math.round((g[G.plan] / g[G.admit25] - 1) * 100) + "%。" : "缺少可比数据或基数较小，不显示百分比。"}组内专业、资格与统计口径可能变化，这个差异不能直接认定为同口径扩招。</div></section><section class="detail-section" data-detail-panel="source" hidden><h3>来源标记与完整组字段</h3><p class="note-box">${g[G.source] === 0 ? "源表标记为官方组线值；本次迁移保留该标记，不代表重新逐条核验原表。" : "源表暂无可用于分档的官方组线；保持原始标记和缺失值。"}</p><table class="field-table" style="margin-top:12px"><tbody>${[
+      )}</div><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub"><b>专业组 ${esc(g[G.code])}</b><span>${trackName(g[1])} · ${esc(g[G.batch])} · ${esc(g[G.type])}</span></div><div class="detail-sub">院校代码 ${esc(s.code)} · ${esc(s.prov)} ${esc(s.city)} · ${esc(s.own)}</div><div class="detail-actions"><button class="button primary" data-save="${i}" data-save-label aria-pressed="${isSaved(i)}">${icon.save}${isSaved(i) ? "已关注" : "关注这个组"}</button><button class="button" data-compare="${i}" aria-pressed="${state.compare.includes(i)}">${icon.compare}加入比较</button>${charter ? `<a class="button" href="${esc(charter)}" target="_blank" rel="noopener">招生章程</a>` : ""}</div></div><section class="detail-section"><h3>位次对照 ${badge(i)}</h3>${comparisonPosition(i)}</section><section class="detail-section"><h3>报考条件与招生计划</h3><div class="detail-stats"><div class="detail-stat"><span>再选科目要求</span><strong style="font-size:19px">${esc(g[G.req] || "未提供")}</strong><small>${{ ok: "符合已知选科要求", mismatch: "与你的选科不符", unset: "设置两门再选科目后核验", unknown: "请核对当年招生章程" }[status]}</small></div><div class="detail-stat"><span>2026 招生计划</span><strong>${nf(g[G.plan])}</strong><small>人 · 组内合计</small></div><div class="detail-stat"><span>四川填报学费</span><strong style="font-size:18px">${esc(fee(g))}</strong><small>招生考试报 · 组内区间</small></div></div>${g[G.type] !== "普通类" || !["本科批B段", "高职(专科)批"].includes(g[G.batch]) ? '<p class="note-box warn" style="margin-top:12px">这个组涉及特殊批次或类型。分数、选科匹配不能代替专项资格、体检和招生章程核验。</p>' : ""}</section><div class="detail-tabs" role="tablist"><button data-detail-tab="majors" role="tab" aria-selected="true">组内专业</button><button data-detail-tab="history" role="tab" aria-selected="false">历年与计划</button><button data-detail-tab="source" role="tab" aria-selected="false">来源与字段</button></div><section class="detail-section" data-detail-panel="majors"><h3>${g[G.n]} 条招生专业记录 <small>专业录取线与组线不同</small></h3><p class="note-box">达到组线不等于可以进入组内任意专业。展开专业查看它自己的往年线、计划、学费与评价。</p><div class="detail-search" style="margin-top:15px"><input type="search" id="professional-search" placeholder="在这个组里查找专业…" aria-label="筛选组内专业"></div><div id="professional-content"><div class="inline-loading">正在读取完整专业档案…</div></div></section><section class="detail-section" data-detail-panel="history" hidden><h3>历年专业组调档线</h3>${historyTable(g)}<p class="fine-print">2024、2023 为旧文理分科参考，不参与新高考冲稳保分档。专业组可能跨年重组。</p><h3 style="margin-top:25px">计划与录取</h3><div class="note-box">2026 计划 ${nf(g[G.plan])} 人，2025 实际录取 ${positive(g[G.admit25])} 人。${g[G.plan] > 0 && g[G.admit25] >= 10 ? "数量相差 " + Math.round((g[G.plan] / g[G.admit25] - 1) * 100) + "%。" : "缺少可比数据或基数较小，不显示百分比。"}组内专业、资格与统计口径可能变化，这个差异不能直接认定为同口径扩招。</div></section><section class="detail-section" data-detail-panel="source" hidden><h3>来源标记与完整组字段</h3><p class="note-box">${g[G.source] === 0 ? "源表标记为官方组线值；本次迁移保留该标记，不代表重新逐条核验原表。" : "源表暂无可用于分档的官方组线；保持原始标记和缺失值。"}</p><table class="field-table" style="margin-top:12px"><tbody>${[
       ["院校与专业组复合代码", g[G.compound]],
       ["专业组稳定标识", bkey(i)],
       ["招生类型", g[G.type]],
@@ -885,7 +878,7 @@ function renderSchoolDetail(si) {
     lines = ids.map((i) => D.groups[i][G.s25]).filter((x) => x > 0),
     url = safeURL(s.charter);
   $("#detail-content").innerHTML =
-    `<div class="detail-head"><span class="school-seal">${seal(s)}</span><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)} · ${esc(s.typ)} · ${esc(s.lvl)}</div><div class="card-tags">${(s.tag || []).map((t) => `<button class="tag" data-tag-info="${esc(t)}">${esc(t)}</button>`).join("")}</div><div class="detail-actions">${url ? `<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener">核对招生章程</a>` : ""}<button class="button" data-school-filter="${si}">在查询中只看这所学校</button></div></div><section class="detail-section"><h3>在川招生的轮廓 <small>${trackName(state.profile.track)} · 全部批次</small></h3><div class="detail-stats"><div class="detail-stat"><span>当前科类专业组</span><strong>${ids.length}</strong><small>各批次分别查看</small></div><div class="detail-stat"><span>2025 组线区间</span><strong style="font-size:20px">${lines.length ? Math.min(...lines) + "–" + Math.max(...lines) : "—"}</strong><small>分 · 各组门槛不同</small></div><div class="detail-stat"><span>院校代码</span><strong>${esc(s.code)}</strong><small>源表独立招生记录</small></div></div><p class="fine-print">同一院校可能包含不同校区、批次和招生类型；最低一条组线不能代表全部专业的门槛。</p></section><section class="detail-section"><h3>完整院校档案</h3><div id="school-archive"><div class="inline-loading">正在读取院校信息与官方来源索引…</div></div></section><section class="detail-section"><h3>一个专业组，一种选择</h3>${
+    `<div class="detail-head"><span class="school-seal">${seal(s)}</span><h2 id="detail-title">${esc(s.n)}</h2><div class="detail-sub">${esc(s.prov)} · ${esc(s.city)} · ${esc(s.own)} · ${esc(s.typ)} · ${esc(s.lvl)}</div><div class="card-tags">${(s.tag || []).map((t) => `<button class="tag" data-tag-info="${esc(t)}">${esc(t)}</button>`).join("")}</div><div class="detail-actions">${url ? `<a class="button primary" href="${esc(url)}" target="_blank" rel="noopener">核对招生章程</a>` : ""}<button class="button" data-school-filter="${si}">在查询中只看这所学校</button></div></div><section class="detail-section"><h3>在川招生信息 <small>${trackName(state.profile.track)} · 全部批次</small></h3><div class="detail-stats"><div class="detail-stat"><span>当前科类专业组</span><strong>${ids.length}</strong><small>各批次分别查看</small></div><div class="detail-stat"><span>2025 组线区间</span><strong style="font-size:20px">${lines.length ? Math.min(...lines) + "–" + Math.max(...lines) : "—"}</strong><small>分 · 各组门槛不同</small></div><div class="detail-stat"><span>院校代码</span><strong>${esc(s.code)}</strong><small>源表独立招生记录</small></div></div><p class="fine-print">同一院校可能包含不同校区、批次和招生类型；最低一条组线不能代表全部专业的门槛。</p></section><section class="detail-section"><h3>完整院校档案</h3><div id="school-archive"><div class="inline-loading">正在读取院校信息与官方来源索引…</div></div></section><section class="detail-section"><h3>招生专业组</h3>${
       ids
         .map((i) => {
           const g = D.groups[i];
@@ -965,7 +958,7 @@ function renderComparison() {
     ],
   ];
   $("#detail-content").innerHTML =
-    `<div class="detail-head"><h2 id="detail-title">把选择，放在一起看。</h2><p class="fine-print">按同一套字段比较。不同科类不作位次对照，专业录取线需进入组内档案逐项查看。</p></div><div class="compare-table-wrap"><table class="compare-table"><thead><tr><th>对比维度</th>${ids.map((i) => `<th>${esc(D.schools[D.groups[i][0]].n)}<small>专业组 ${esc(D.groups[i][4])}</small></th>`).join("")}</tr></thead><tbody>${rows.map(([label, render]) => `<tr><th>${label}</th>${ids.map((i) => `<td>${render(i)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="fine-print">手机上可横向滑动比较表格。缺失值保留为“未提供”，不解释为免费、无资格或新增。</p>`;
+    `<div class="detail-head"><h2 id="detail-title">专业组对比</h2><p class="fine-print">按同一套字段比较。不同科类不作位次对照，专业录取线需进入组内档案逐项查看。</p></div><div class="compare-table-wrap"><table class="compare-table"><thead><tr><th>对比维度</th>${ids.map((i) => `<th>${esc(D.schools[D.groups[i][0]].n)}<small>专业组 ${esc(D.groups[i][4])}</small></th>`).join("")}</tr></thead><tbody>${rows.map(([label, render]) => `<tr><th>${label}</th>${ids.map((i) => `<td>${render(i)}</td>`).join("")}</tr>`).join("")}</tbody></table></div><p class="fine-print">手机上可横向滑动比较表格。缺失值保留为“未提供”，不解释为免费、无资格或新增。</p>`;
 }
 
 function renderPlan() {
@@ -985,7 +978,7 @@ function renderPlan() {
   const controls = `<div class="plan-controls"><div><select id="plan-batch" aria-label="工作台批次">${options(allBatches, state.planBatch, "当前科类 · 全部批次")}</select><button class="button" data-action="gradient">按梯度预排</button></div><div><button class="button" data-action="export">导出完整清单</button><button class="button" data-action="import">导入</button><button class="button" data-action="migrate">导入旧版收藏</button><button class="button" data-action="print">打印</button></div></div>`;
   if (!state.saved.length) {
     $("#plan-workspace").innerHTML =
-      `${controls}<div class="plan-empty"><span class="empty-orbit">✧</span><h3>先留住可能，再认真选择。</h3><p>关注专业组，把它们放进工作台。写下想法，选出喜欢的专业，再安排你的志愿顺序。</p><div><button class="button primary" data-route="explore">去探索专业组</button><button class="button" data-action="migrate">导入第一代 / 第二代收藏</button></div></div>`;
+      `${controls}<div class="plan-empty"><span class="empty-orbit">✧</span><h3>还没有保存专业组</h3><p>在查询结果中关注专业组，之后可在这里选择专业、排序、添加备注和导出。</p><div><button class="button primary" data-route="explore">查询专业组</button><button class="button" data-action="migrate">导入第一代 / 第二代收藏</button></div></div>`;
     return;
   }
   const lines = scope.filter((i) => D.groups[i][G.r25] > 0),
@@ -1028,7 +1021,7 @@ function renderPlan() {
     ]);
   const savedById = new Map(state.saved.map((v) => [v.id, v]));
   $("#plan-workspace").innerHTML =
-    `<h2 class="print-only">落点 V3 · 志愿探索草稿</h2><div class="plan-summary"><div class="plan-capacity"><span class="eyebrow">${trackName(p.track)} · ${esc(state.planBatch || "全部批次")}</span><strong>${scope.length}<small>${d.capacity ? " / " + d.capacity : " 个关注组"}</small></strong><div class="capacity-bar"><i style="width:${d.capacity ? Math.min(100, (scope.length / d.capacity) * 100) : 100}%"></i></div><p>${d.capacity ? '2026 普通类：45 个组，每组 6 个专业志愿。<a class="source-link" href="https://www.sceea.cn/Html/202604/Newsdetail_4767.html" target="_blank" rel="noopener">核对官方规定</a>' : "按批次分别整理；全部批次不混算志愿容量。"}</p></div><div class="plan-spectrum"><h3>看看你的志愿梯度</h3><div class="spectrum-counts">${["chong", "wen", "bao", "risk", "far", "none"].map((k) => `<div style="--band:${C.bands[k].color}">${C.bands[k].name}<strong>${d.counts[k]}</strong></div>`).join("")}</div><div class="spectrum-track">${lines.map((i) => `<i style="left:${x(D.groups[i][G.r25])}%;--band:${C.bands[band(i)].color}" title="${esc(D.schools[D.groups[i][0]].n)}，位次${D.groups[i][G.r25]}"></i>`).join("")}${pos.rank && ranks.length ? `<div class="spectrum-you" style="left:${x(pos.rank)}%"><span>你的位次</span></div>` : ""}<small>往年位次靠前</small><small>往年位次靠后</small></div></div></div>${controls}<div class="plan-diagnosis">${notes.map(([kind, text]) => `<div class="diagnosis ${kind}">${esc(text)}</div>`).join("")}</div><p class="plan-other">完整工作台共 ${state.saved.length} 个组；当前显示 ${scope.length} 个。${state.saved.length - scope.length ? "其他科类或批次的关注仍已保存。" : ""} 可用手柄拖动或上下按钮排序。</p><div id="plan-list">${
+    `<h2 class="print-only">落点 · 志愿草稿</h2>${controls}<div class="plan-summary"><div class="plan-capacity"><span class="eyebrow">${trackName(p.track)} · ${esc(state.planBatch || "全部批次")}</span><strong>${scope.length}<small>${d.capacity ? " / " + d.capacity : " 个关注组"}</small></strong><div class="capacity-bar"><i style="width:${d.capacity ? Math.min(100, (scope.length / d.capacity) * 100) : 100}%"></i></div><p>${d.capacity ? '2026 普通类：45 个组，每组 6 个专业志愿。<a class="source-link" href="https://www.sceea.cn/Html/202604/Newsdetail_4767.html" target="_blank" rel="noopener">核对官方规定</a>' : "按批次分别整理；全部批次不混算志愿容量。"}</p></div><div class="plan-spectrum"><h3>志愿梯度</h3><div class="spectrum-counts">${["chong", "wen", "bao", "risk", "far", "none"].map((k) => `<div style="--band:${C.bands[k].color}">${C.bands[k].name}<strong>${d.counts[k]}</strong></div>`).join("")}</div><details class="plan-distribution"><summary>往年位次分布</summary><div class="spectrum-track">${lines.map((i) => `<i style="left:${x(D.groups[i][G.r25])}%;--band:${C.bands[band(i)].color}" title="${esc(D.schools[D.groups[i][0]].n)}，位次${D.groups[i][G.r25]}"></i>`).join("")}${pos.rank && ranks.length ? `<div class="spectrum-you" style="left:${x(pos.rank)}%"><span>你的位次</span></div>` : ""}<small>往年位次靠前</small><small>往年位次靠后</small></div></details></div></div><div class="plan-diagnosis">${notes.map(([kind, text]) => `<div class="diagnosis ${kind}">${esc(text)}</div>`).join("")}</div><p class="plan-other">完整工作台共 ${state.saved.length} 个组；当前显示 ${scope.length} 个。${state.saved.length - scope.length ? "其他科类或批次的关注仍已保存。" : ""} 可用手柄拖动或上下按钮排序。</p><div id="plan-list">${
       scope
         .map((i, n) => {
           const g = D.groups[i],
@@ -1245,8 +1238,8 @@ function exportWorkbench(format) {
 }
 function openExport() {
   openModal(
-    "把选择带走。",
-    "WORKBENCH / 导出",
+    "导出志愿清单",
+    "志愿清单",
     `<p>全部 ${state.saved.length} 个关注组都会保留，包含不同科类、批次、顺序、备注与专业偏好。</p><div class="modal-bottom" style="justify-content:flex-start;flex-wrap:wrap"><button class="button primary" data-export-format="text">文字草稿</button><button class="button" data-export-format="csv">表格 CSV</button><button class="button" data-export-format="json">完整备份 JSON</button></div><p class="fine-print">JSON 备份可再次导入，恢复顺序、备注与专业偏好。清单内容保存在当前浏览器，不随查询链接分享。</p>`,
   );
 }
@@ -1329,8 +1322,8 @@ function migrate() {
 function openSubjects() {
   subjectDraft = [...state.profile.subjects];
   openModal(
-    "两门再选科目，先核对。",
-    "PROFILE / 选科",
+    "设置再选科目",
+    "科目设置",
     `<p>首选科目为${trackName(state.profile.track)}。选择两门再选科目，才能准确核验专业组的已知要求。</p><div id="subject-options" class="subject-options"></div><label class="filter-check" style="font-size:14px"><input id="subject-only-draft" type="checkbox" ${state.filters.subjectOnly ? "checked" : ""}>筛选时只看符合选科要求的组</label><div class="modal-bottom"><button class="button" data-action="subject-clear">清除</button><button class="button primary" data-action="subject-apply">确认选科</button></div>`,
   );
   renderSubjectOptions();
@@ -1347,16 +1340,16 @@ function renderSubjectOptions() {
 }
 function openFilters() {
   openModal(
-    "把范围缩小一点。",
-    "FILTER / 条件",
+    "筛选条件",
+    "查询条件",
     `<div class="modal-filters">${filterMarkup("mobile")}</div><p class="fine-print">学费筛选按组内最高四川填报值；未知学费不当作免费。专业门类与专业类须属于同一条招生专业记录。</p><div class="modal-bottom"><button class="button" data-action="reset-modal">重置</button><button class="button primary" data-close>查看结果</button></div>`,
   );
 }
 function openDestinations() {
   destinationRegion = state.filters.region || "";
   openModal(
-    "下一站，想去哪里。",
-    "DESTINATION / 地区",
+    "选择院校地区",
+    "院校地区",
     `<p>按当前科类与批次统计专业组。选择目的地后，还可以继续按专业、学费和选科筛选。</p><div class="destination-regions" id="destination-regions"></div><div class="destination-grid" id="destination-grid"></div>`,
   );
   renderDestinations();
@@ -1392,12 +1385,12 @@ function renderDestinations() {
 }
 function openSettings() {
   openModal(
-    "把体验调成你的节奏。",
-    "EXPERIENCE / 设置",
-    `<div class="settings-row"><div><strong>界面主题</strong><p>夜空更沉浸，日光适合明亮教室。</p></div><select data-setting="theme" aria-label="界面主题"><option value="dark" ${state.settings.theme === "dark" ? "selected" : ""}>夜空</option><option value="light" ${state.settings.theme === "light" ? "selected" : ""}>日光</option></select></div><div class="settings-row"><div><strong>动画强度</strong><p>尊重系统减少动态效果设置；手机自动控制帧率。</p></div><select data-setting="motion" aria-label="动画强度">${[
+    "界面设置",
+    "界面设置",
+    `<div class="settings-row"><div><strong>界面主题</strong><p>浅色与深色均支持全部查询功能。</p></div><select data-setting="theme" aria-label="界面主题"><option value="dark" ${state.settings.theme === "dark" ? "selected" : ""}>深色</option><option value="light" ${state.settings.theme === "light" ? "selected" : ""}>浅色</option></select></div><div class="settings-row"><div><strong>动画强度</strong><p>尊重系统减少动态效果设置；界面过渡不会影响查询结果。</p></div><select data-setting="motion" aria-label="动画强度">${[
       ["auto", "跟随设备"],
-      ["full", "完整动效"],
-      ["soft", "轻盈动效"],
+      ["full", "界面过渡"],
+      ["soft", "轻微过渡"],
       ["none", "关闭动画"],
     ]
       .map(
@@ -1411,18 +1404,18 @@ function openSettings() {
 }
 function openHelp() {
   openModal(
-    "从一个分数，到一份清楚的选择。",
-    "GUIDE / 使用指南",
+    "使用指南",
+    "使用指南",
     `<div class="help-grid">${[
       [
         "01",
-        "设好你的坐标",
+        "填写分数与选科",
         "选择物理类或历史类，填写分数或位次，再选好两门科目。分数先用 2026 表换算位次。",
       ],
       [
         "02",
-        "沿着星图探索",
-        "星点对应专业组，横轴是 2025 组线，纵向按地域大区排列。结果列表包含全部匹配记录，星图只展示明确标注数量的采样。",
+        "筛选专业组",
+        "用地区、批次、学费与专业条件缩小范围。列表显示全部匹配记录；可展开组线分布图查看标注数量的采样。",
       ],
       [
         "03",
@@ -1441,15 +1434,15 @@ function openHelp() {
       )
       .join(
         "",
-      )}</div><h3>冲稳保怎样来的？</h3><p>以“2025 组线位次 ÷ 你的位次”分档：0.77–0.95 为冲，0.95–1.18 为稳，1.18–1.67 为保；更靠前、靠后或缺少数据分别另列。它描述往年位置，不是概率预测。</p><h3>手机上的快捷操作</h3><p>底部导航切换入口；详情中向右滑动可逐层返回，也可以用返回按钮或系统返回。点击星点查看组，分数滑杆可触摸调整。桌面按 / 搜索，按 ⌘/Ctrl K 快速查找。</p><h3>把年份与口径分开看</h3><p>2024、2023 旧文理数据只供历史参考。院校收费材料与四川招生考试报专业学费分别展示。缺失保持未知，不自动判成免费、新增或无资格。</p><div class="modal-bottom"><button class="button" data-action="data">查看数据与官方入口</button></div>`,
+      )}</div><h3>冲稳保怎样来的？</h3><p>以“2025 组线位次 ÷ 你的位次”分档：0.77–0.95 为冲，0.95–1.18 为稳，1.18–1.67 为保；更靠前、靠后或缺少数据分别另列。它描述往年位置，不是概率预测。</p><h3>手机上的快捷操作</h3><p>底部导航切换入口；详情中向右滑动可逐层返回，也可以用返回按钮或系统返回。在分布图中点选查看专业组，分数滑杆可触摸调整。桌面按 / 搜索，按 ⌘/Ctrl K 快速查找。</p><h3>把年份与口径分开看</h3><p>2024、2023 旧文理数据只供历史参考。院校收费材料与四川招生考试报专业学费分别展示。缺失保持未知，不自动判成免费、新增或无资格。</p><div class="modal-bottom"><button class="button" data-action="data">查看数据与官方入口</button></div>`,
   );
 }
 async function openData() {
   const m = repository.manifest,
     c = m.coverage;
   openModal(
-    "每条信息，都保留它的来处。",
-    "DATA / 数据与来源",
+    "数据与来源",
+    "数据与来源",
     `<p>这是本项目整理的招生数据快照，源数据版本 ${esc(D.sourceVersion)}，生成于 ${esc(new Date(D.generated).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", hour12: false }))}（北京时间）。本次无损迁移保留原始字段与缺失值，不等于逐条重新验证官方原表。</p><div class="data-stats">${[
       ["院校记录", D.counts.schools],
       ["院校专业组", D.counts.groups],
@@ -1495,7 +1488,7 @@ function tagInfo(tag) {
   const t = D.tags[tag];
   openModal(
     t?.title || tag,
-    "TAG / 标签说明",
+    "院校标签",
     t
       ? `<p>${esc(t.desc || "说明未提供")}</p>${t.caution ? `<p class="note-box" style="margin-top:15px">${esc(t.caution)}</p>` : ""}${safeURL(t.source) ? `<a class="source-link" href="${esc(safeURL(t.source))}" target="_blank" rel="noopener">查看标签来源</a>` : ""}`
       : "<p>源表保留了这个标签，但尚未提供可核对的解释。请结合院校官方信息了解。</p>",
@@ -1510,9 +1503,9 @@ function openCommand() {
 function renderCommand(q) {
   q = q.trim().toLowerCase();
   const actions = [
-      ["explore", "探索专业组", "按分数、地区、专业查询"],
-      ["majors", "专业宇宙", "从专业看哪些院校招你"],
-      ["schools", "院校图鉴", "查看完整院校档案"],
+      ["explore", "专业组查询", "按分数、地区、专业查询"],
+      ["majors", "专业查询", "从专业看哪些院校招你"],
+      ["schools", "院校查询", "查看完整院校档案"],
       ["plan", "志愿工作台", "备注、偏好、排序与导出"],
     ],
     rows = [];
@@ -1587,12 +1580,13 @@ async function share() {
   } catch {
     openModal(
       "复制这个查询链接。",
-      "SHARE / 查询",
+      "分享查询",
       `<p>定位、筛选条件和当前入口会分享，个人备注与工作台内容留在你的浏览器。</p><input style="width:100%;margin-top:20px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;font-size:14px" readonly value="${esc(location.href)}" aria-label="当前查询链接">`,
     );
   }
 }
 function bind() {
+  $("#distribution-panel").addEventListener("toggle", renderAtlas);
   document.addEventListener("click", (e) => {
     const b = e.target.closest("button,a,[data-group]");
     if (!b) return;
@@ -1872,7 +1866,7 @@ function bind() {
         updateURL();
         if (
           $("#modal-dialog").open &&
-          $("#modal-kicker").textContent === "EXPERIENCE / 设置"
+          $("#modal-kicker").textContent === "界面设置"
         )
           openSettings();
         break;
@@ -1894,9 +1888,9 @@ function bind() {
         break;
       case "atlas-expand":
         openModal(
-          "沿着分数轴，看看这些方向。",
-          "ATLAS / 选择星图",
-          `<div class="atlas-plot" style="height:350px">${$("#atlas").innerHTML}</div><p class="fine-print">横轴为 2025 专业组调档分数，纵向按地域大区排列；星点为当前条件下的采样。完整结果在查询列表中。</p>`,
+          "2025 专业组调档线分布",
+          "组线分布",
+          `<div class="atlas-plot" style="height:350px">${$("#atlas").innerHTML}</div><p class="fine-print">横轴为 2025 专业组调档分数，纵向按地域大区排列；图中点位是当前条件下的采样。完整结果在查询列表中。</p>`,
         );
         break;
     }
@@ -2241,7 +2235,14 @@ function restore() {
     state.settings.motion = prefs.motion;
   state.settings.stage = prefs.stage === true;
   state.layout =
-    store.read("luodian.v3.layout", "cards") === "list" ? "list" : "cards";
+    store.read("luodian.v3.layout", "list") === "cards" ? "cards" : "list";
+  if (store.read("luodian.v3.interface", 0) < 1) {
+    state.settings.theme = "light";
+    state.settings.motion = "none";
+    state.layout = "list";
+    store.write("luodian.v3.interface", 1);
+    store.write("luodian.v3.layout", "list");
+  }
   restoreQuery();
 }
 function restoreQuery(clearMissing = false) {
@@ -2282,8 +2283,8 @@ function restoreQuery(clearMissing = false) {
   if (state.profile.subjects.length !== 2) state.filters.subjectOnly = false;
   if (p.has("stage")) state.settings.stage = p.get("stage") === "1";
   if (p.get("noanim") === "1") state.settings.motion = "none";
-  if (p.get("layout") === "list") state.layout = "list";
-  else if (clearMissing) state.layout = "cards";
+  if (["list", "cards"].includes(p.get("layout"))) state.layout = p.get("layout");
+  else if (clearMissing) state.layout = "list";
   state.route = ["explore", "majors", "schools", "plan"].includes(
     location.hash.slice(1),
   )
@@ -2318,7 +2319,7 @@ async function init() {
     console.error(e);
     $("#results").setAttribute("aria-busy", "false");
     $("#results").innerHTML =
-      `<div class="empty-state"><span>✧</span><h3>星图暂时未能点亮。</h3><p>${esc(e.message)}</p><button class="button primary" onclick="location.reload()">重新加载</button><a class="button" href="../v2/">打开第二代</a></div>`;
+      `<div class="empty-state"><span>✧</span><h3>招生数据加载失败</h3><p>${esc(e.message)}</p><button class="button primary" onclick="location.reload()">重新加载</button><a class="button" href="../v2/">打开第二代</a></div>`;
     $("#results-count").textContent = "暂时无法读取数据";
     $("#atlas").innerHTML =
       '<div class="loading-orbit"><span>数据尚未就绪</span></div>';

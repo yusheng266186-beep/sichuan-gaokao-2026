@@ -66,37 +66,37 @@
     chong: {
       name: "冲一冲",
       short: "冲",
-      color: "#f8ad85",
+      color: "#bd5b3b",
       description: "往年组线位次更靠前",
     },
     wen: {
       name: "稳一稳",
       short: "稳",
-      color: "#75d9ff",
+      color: "#356bb3",
       description: "与你的位次接近",
     },
     bao: {
       name: "保一保",
       short: "保",
-      color: "#90e4b6",
+      color: "#258065",
       description: "往年组线位次更靠后",
     },
     risk: {
       name: "差距较大",
       short: "远",
-      color: "#c9a0ff",
+      color: "#7c62a2",
       description: "往年组线明显靠前",
     },
     far: {
       name: "更多余量",
       short: "余",
-      color: "#a6b5c8",
+      color: "#738093",
       description: "往年组线明显靠后",
     },
     none: {
       name: "待了解",
       short: "待",
-      color: "#a6b5c8",
+      color: "#738093",
       description: "暂无有效位次对照",
     },
   };
