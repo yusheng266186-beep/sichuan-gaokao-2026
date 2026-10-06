@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="落点">
+  <title>落点 · 四川 2026 高考志愿</title>
+  <rect width="32" height="32" rx="7" fill="#16233c"/>
+  <circle cx="16" cy="16" r="11" fill="none" stroke="#fff" stroke-opacity=".34"
+          stroke-width="1.5" stroke-dasharray="3.2 3.8"/>
+  <circle cx="16" cy="16" r="6.4" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>
+  <path d="M16 2.6v4.2M16 25.2v4.2M2.6 16h4.2M25.2 16h4.2"
+        stroke="#fff" stroke-opacity=".5" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="16" cy="16" r="3" fill="#d97d3d"/>
+</svg>

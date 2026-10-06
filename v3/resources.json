@@ -1,0 +1,41 @@
+{
+  "checkedAt": "2026-10-02",
+  "policy": "Official navigation and verified 2026 ordinary-batch capacity rules were added. Original admissions values were not overwritten with web summaries.",
+  "ordinaryBatchRules": {
+    "year": 2026,
+    "source": "https://www.sceea.cn/Html/202604/Newsdetail_4767.html",
+    "publisher": "四川省教育考试院",
+    "本科批B段": { "groups": 45, "majorsPerGroup": 6 },
+    "高职(专科)批": { "groups": 45, "majorsPerGroup": 6 },
+    "scope": "普通类；其他批次、专项及民族语言类别须按对应条款分别核对。偏好清单不限制关注数量，不等于正式提交。"
+  },
+  "resources": [
+    {
+      "title": "2026 四川普通高校招生规定",
+      "url": "https://www.sceea.cn/Html/202604/Newsdetail_4767.html",
+      "publisher": "四川省教育考试院",
+      "year": 2026,
+      "purpose": "核对批次容量、组内专业志愿数与报考资格"
+    },
+    {
+      "title": "2026 四川招生计划 · 物理类",
+      "url": "https://plan.sceea.cn/lkjh.html",
+      "publisher": "四川省教育考试院",
+      "year": 2026,
+      "purpose": "核对招生专业、计划名额和报考备注"
+    },
+    {
+      "title": "2026 四川招生计划 · 历史类",
+      "url": "https://plan.sceea.cn/wkjh.html",
+      "publisher": "四川省教育考试院",
+      "year": 2026,
+      "purpose": "核对招生专业、计划名额和报考备注"
+    },
+    {
+      "title": "阳光高考",
+      "url": "https://gaokao.chsi.com.cn/",
+      "publisher": "教育部阳光高考平台",
+      "purpose": "查找院校与招生章程入口"
+    }
+  ]
+}
