@@ -1935,9 +1935,9 @@ function bind() {
     }, 110);
   });
   $("#position-value").addEventListener("change", () => {
-    clearTimeout(refreshTimer);
+    // The input handler already schedules the query update. Re-rendering on
+    // blur would replace a result button between pointerdown and click.
     saveProfile();
-    refresh();
   });
   $("#score-range").addEventListener("input", (e) => {
     state.profile.value = Number(e.target.value);

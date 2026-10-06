@@ -112,6 +112,11 @@ async function workflow(width, base) {
       await page.locator("#equivalent-value").textContent(),
       "546 分",
     );
+    // Clicking a result while the score input still has focus must open it
+    // on the first click; blur must not replace the clicked result button.
+    await page.locator("#results .actions-cell [data-group]").first().click();
+    await page.waitForSelector("#professional-content .major-detail");
+    await closeDialog(page);
     await page.locator("#position-value").fill("");
     await page.waitForFunction(
       () => document.querySelector("#rank-value").textContent === "—",
