@@ -1,5 +1,7 @@
 # 落点 · 四川 2026 高考志愿查询
 
+[English guide](README.en.md)
+
 静态站点，打开即用，不需要服务器、不需要安装任何东西。
 
 **V3 · 专业组查询：<https://yusheng266186-beep.github.io/sichuan-gaokao-2026/v3/>**
@@ -25,7 +27,7 @@
 
 按院校专业组、分数与位次筛选四川高考志愿数据，辅助整理冲稳保候选。
 
-[在线体验](https://yusheng266186-beep.github.io/sichuan-gaokao-2026/v2/) · [使用与开发](#第二代--看清选择找到方向) · [项目总导航](https://github.com/yusheng266186-beep/yusheng266186-beep)
+[V3 在线体验](https://yusheng266186-beep.github.io/sichuan-gaokao-2026/v3/) · [第二代说明](#第二代--看清选择找到方向) · [项目总导航](https://github.com/yusheng266186-beep/yusheng266186-beep)
 
 本库提供直接查询入口；需要结合兴趣与目标进行探索时，可查看 [南溟](https://github.com/yusheng266186-beep/nanming)。数据年份、科类口径和分数换算范围见下文。
 
